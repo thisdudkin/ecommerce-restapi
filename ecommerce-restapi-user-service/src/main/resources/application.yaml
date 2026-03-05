@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url:      jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${USERS_DB:users_db}
+    username: ${USERS_DB_USER:user_service}
+    password: ${USERS_DB_PASSWORD}
+  liquibase:
+    enabled: true
+  output:
+    ansi:
+      enabled: always
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+    org.hibernate.type.descriptor.sql.BasicBinder: trace

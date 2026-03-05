@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003
+      author: Alexander Dudkin
+      changes:
+        - createIndex:
+            indexName: idx_payments_cards_user_id
+            tableName: payments_cards
+            columns:
+              - column:
+                  name: user_id
