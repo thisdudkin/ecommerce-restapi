@@ -5,6 +5,7 @@ spring:
     password: ${USERS_DB_PASSWORD}
   jpa:
     show-sql: false
+    open-in-view: false
     properties:
       hibernate:
         format_sql: false
@@ -21,9 +22,10 @@ decorator:
     enabled: true
     datasource-proxy:
       logging: slf4j
-      multiline: false
+      multiline: true
+      format-sql: true
       query:
-        enable-logging: false
+        enable-logging: true
       slow-query:
         enable-logging: true
         log-level: warn
@@ -32,3 +34,4 @@ logging:
   level:
     org.hibernate.SQL: off
     org.hibernate.orm.jdbc.bind: off
+    net.ttddyy.dsproxy.listener: debug

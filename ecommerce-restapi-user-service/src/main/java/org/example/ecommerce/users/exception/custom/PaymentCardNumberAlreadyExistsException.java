@@ -6,6 +6,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 public class PaymentCardNumberAlreadyExistsException extends RuntimeException {
+
     private final Set<String> numbers;
 
     public PaymentCardNumberAlreadyExistsException(String number) {
