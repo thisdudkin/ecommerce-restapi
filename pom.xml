@@ -21,9 +21,14 @@
     </modules>
 
     <properties>
+        <!-- Maven properties -->
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Third parties -->
+        <testcontainers.version>1.21.4</testcontainers.version>
+        <spring-boot-datasource-proxy.version>2.0.0</spring-boot-datasource-proxy.version>
     </properties>
 
 </project>
