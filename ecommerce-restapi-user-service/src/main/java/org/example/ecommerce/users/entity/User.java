@@ -151,11 +151,11 @@ public class User {
         this.updatedAt = updatedAt;
     }
 
-    public Set<PaymentCard> getPaymentsCards() {
+    public Set<PaymentCard> getPaymentCards() {
         return paymentCards;
     }
 
-    public void setPaymentsCards(Set<PaymentCard> paymentCards) {
+    public void setPaymentCards(Set<PaymentCard> paymentCards) {
         this.paymentCards = paymentCards;
     }
 

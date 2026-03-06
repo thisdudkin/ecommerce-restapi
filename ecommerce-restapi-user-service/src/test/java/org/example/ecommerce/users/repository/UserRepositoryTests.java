@@ -46,7 +46,7 @@ class UserRepositoryTests {
         // Assert
         assertThat(user.getName()).isEqualTo("Alexander");
         assertThat(user.getSurname()).isEqualTo("Dudkin");
-        assertThat(user.getPaymentsCards()).hasSize(3);
+        assertThat(user.getPaymentCards()).hasSize(3);
     }
 
     @Test
@@ -176,6 +176,27 @@ class UserRepositoryTests {
 
         // Assert
         assertThat(exists).isFalse();
+    }
+
+    @Test
+    void findByIdForUpdateShouldReturnUserWithCards() {
+        // Act
+        User user = repository.findByIdForUpdate(1L)
+            .orElseThrow();
+
+        // Assert
+        assertThat(user.getName()).isEqualTo("Alexander");
+        assertThat(user.getSurname()).isEqualTo("Dudkin");
+        assertThat(user.getPaymentCards()).hasSize(3);
+    }
+
+    @Test
+    void findByIdForUpdateShouldReturnEmptyWhenUserDoesNotExist() {
+        // Act
+        Optional<User> user = repository.findByIdForUpdate(999L);
+
+        // Assert
+        assertThat(user).isEmpty();
     }
 
 }
