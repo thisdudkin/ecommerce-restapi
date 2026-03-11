@@ -21,6 +21,9 @@ import org.example.ecommerce.users.repository.UserRepository;
 import org.example.ecommerce.users.repository.enums.SortDirection;
 import org.example.ecommerce.users.repository.specifications.UserSpecifications;
 import org.example.ecommerce.users.utils.UserCursorCodec;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.ScrollPosition;
@@ -30,6 +33,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
+
+import static org.example.ecommerce.users.config.RedisCacheConfig.USER_WITH_CARDS;
 
 @Service
 public class UserService {
@@ -53,6 +58,7 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = USER_WITH_CARDS, key = "#id")
     public UserResponse getById(Long id) {
         User user = userRepository.findByIdWithCards(id)
             .orElseThrow(() -> new UserNotFoundException(id));
@@ -127,6 +133,7 @@ public class UserService {
     }
 
     @Transactional
+    @CachePut(cacheNames = USER_WITH_CARDS, key = "#id")
     public UserResponse update(Long id, UserUpdateRequest request) {
         User existing = getUserOrThrow(id);
         if (userRepository.existsByEmailAndIdNot(request.email(), id))
@@ -137,11 +144,13 @@ public class UserService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = USER_WITH_CARDS, key = "#id")
     public void delete(Long id) {
         userRepository.delete(getUserOrThrow(id));
     }
 
     @Transactional
+    @CacheEvict(cacheNames = USER_WITH_CARDS, key = "#id")
     public void activate(Long id) {
         User user = getUserOrThrow(id);
 
@@ -152,6 +161,7 @@ public class UserService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = USER_WITH_CARDS, key = "#id")
     public void deactivate(Long id) {
         User user = getUserOrThrow(id);
 

@@ -1,5 +1,6 @@
 package org.example.ecommerce.users.service;
 
+import org.example.ecommerce.users.config.RedisCacheConfig;
 import org.example.ecommerce.users.dto.request.PaymentCardRequest;
 import org.example.ecommerce.users.dto.response.PaymentCardResponse;
 import org.example.ecommerce.users.entity.PaymentCard;
@@ -14,10 +15,13 @@ import org.example.ecommerce.users.exception.custom.UserPaymentCardsLimitExceede
 import org.example.ecommerce.users.mapper.PaymentCardMapper;
 import org.example.ecommerce.users.repository.PaymentCardRepository;
 import org.example.ecommerce.users.repository.UserRepository;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+
+import static org.example.ecommerce.users.config.RedisCacheConfig.USER_WITH_CARDS;
 
 @Service
 public class PaymentCardService {
@@ -50,6 +54,7 @@ public class PaymentCardService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = USER_WITH_CARDS, key = "#userId")
     public PaymentCardResponse create(Long userId, PaymentCardRequest request) {
         User user = userRepository.findByIdForUpdate(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
@@ -67,6 +72,7 @@ public class PaymentCardService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = USER_WITH_CARDS, key = "#userId")
     public PaymentCardResponse update(Long userId, Long cardId, PaymentCardRequest request) {
         PaymentCard existing = getOwnedCardOrThrow(userId, cardId);
 
@@ -81,6 +87,7 @@ public class PaymentCardService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = USER_WITH_CARDS, key = "#userId")
     public void activate(Long userId, Long cardId) {
         PaymentCard existing = getOwnedCardOrThrow(userId, cardId);
 
@@ -91,6 +98,7 @@ public class PaymentCardService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = USER_WITH_CARDS, key = "#userId")
     public void deactivate(Long userId, Long cardId) {
         PaymentCard existing = getOwnedCardOrThrow(userId, cardId);
 
@@ -101,6 +109,7 @@ public class PaymentCardService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = USER_WITH_CARDS, key = "#userId")
     public void delete(Long userId, Long cardId) {
         cardRepository.delete(getOwnedCardOrThrow(userId, cardId));
     }
