@@ -1,7 +1,7 @@
 spring:
   datasource:
-    url:      jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${USERS_DB}
-    username: ${USERS_DB_USER}
+    url: jdbc:postgresql://localhost:5432/users_db
+    username: user_service
     password: ${USERS_DB_PASSWORD}
   jpa:
     show-sql: false
@@ -15,8 +15,8 @@ spring:
     enabled: true
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      host: localhost
+      port: 6379
   cache:
     type: redis
     redis:
@@ -27,19 +27,24 @@ spring:
 
 decorator:
   datasource:
-    enabled: true
-    datasource-proxy:
-      logging: slf4j
-      multiline: true
-      format-sql: true
-      query:
-        enable-logging: true
-      slow-query:
-        enable-logging: true
-        log-level: warn
+    enabled: false
 
 logging:
   level:
     org.hibernate.SQL: off
     org.hibernate.orm.jdbc.bind: off
-    net.ttddyy.dsproxy.listener: debug
+    net.ttddyy.dsproxy.listener: off
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://postgres:5432/users_db
+    username: user_service
+    password: ${USERS_DB_PASSWORD}
+  data:
+    redis:
+      host: redis
+      port: 6379

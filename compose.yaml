@@ -1,4 +1,16 @@
 services:
+  user-service:
+    image: uglyraddan/ecommerce-restapi-user-service
+    container_name: user-service
+    environment:
+      SERVER_PORT: 8081
+      USERS_DB_PASSWORD: ${USERS_DB_PASSWORD}
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
     image: postgres:17.0
     container_name: postgres
