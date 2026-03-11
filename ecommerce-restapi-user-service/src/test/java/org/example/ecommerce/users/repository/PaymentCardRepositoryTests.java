@@ -60,10 +60,9 @@ class PaymentCardRepositoryTests {
         List<PaymentCard> cards = repository.findAllByUserId(1L);
 
         // Assert
-        assertThat(cards).hasSize(3);
-        assertThat(cards).allMatch(
-            card -> card.getUser().getId().equals(1L)
-        );
+        assertThat(cards)
+            .hasSize(3)
+            .allMatch(card -> card.getUser().getId().equals(1L));
     }
 
     @Test

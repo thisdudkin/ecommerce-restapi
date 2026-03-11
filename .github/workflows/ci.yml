@@ -10,8 +10,8 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         java: [ '21' ]
@@ -19,24 +19,36 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK ${{ matrix.java }}
         uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.java }}
           distribution: 'temurin'
-          cache: maven
 
-      - name: Cache Maven Dependencies
+      - name: Cache SonarQube packages
         uses: actions/cache@v4
         with:
-          path: ~/.m2/repository
-          key: maven-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            maven-${{ runner.os }}-
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
 
-      - name: Install dependencies and run tests
-        run: mvn -B clean verify
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build and run tests with coverage
+        run: mvn -B clean install -Pcoverage
+
+      - name: Run SonarQube analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: mvn -B -Pcoverage org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=thisdudkin_ecommerce-restapi -Dsonar.organization=thisdudkin
 
       - name: Package application
         run: mvn -B package -DskipTests --file pom.xml

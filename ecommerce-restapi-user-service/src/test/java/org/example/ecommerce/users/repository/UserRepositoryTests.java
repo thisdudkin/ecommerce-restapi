@@ -77,6 +77,70 @@ class UserRepositoryTests {
     }
 
     @Test
+    void findWindowShouldFilterByNameIgnoringCaseAndTrim() {
+        // Act
+        Window<User> window = repository.findWindow(
+            UserSpecifications.withFilters("  alex  ", null),
+            PageRequest.of(0, 10, UserRepository.keysetSort(SortDirection.ASC)),
+            ScrollPosition.keyset()
+        );
+
+        // Assert
+        List<User> users = window.getContent();
+        assertThat(users).isNotEmpty();
+        assertThat(users)
+            .extracting(User::getName)
+            .allMatch(name -> name.toLowerCase().contains("alex"));
+    }
+
+    @Test
+    void findWindowShouldFilterBySurnameIgnoringCaseAndTrim() {
+        // Act
+        Window<User> window = repository.findWindow(
+            UserSpecifications.withFilters(null, "  dud  "),
+            PageRequest.of(0, 10, UserRepository.keysetSort(SortDirection.ASC)),
+            ScrollPosition.keyset()
+        );
+
+        // Assert
+        List<User> users = window.getContent();
+        assertThat(users).isNotEmpty();
+        assertThat(users)
+            .extracting(User::getSurname)
+            .allMatch(surname -> surname.toLowerCase().contains("dud"));
+    }
+
+    @Test
+    void findWindowShouldFilterByNameAndSurname() {
+        // Act
+        Window<User> window = repository.findWindow(
+            UserSpecifications.withFilters("alex", "dud"),
+            PageRequest.of(0, 10, UserRepository.keysetSort(SortDirection.ASC)),
+            ScrollPosition.keyset()
+        );
+
+        // Assert
+        List<User> users = window.getContent();
+        assertThat(users).hasSize(1);
+        assertThat(users.getFirst().getName()).isEqualTo("Alexander");
+        assertThat(users.getFirst().getSurname()).isEqualTo("Dudkin");
+    }
+
+    @Test
+    void findWindowShouldIgnoreBlankFilters() {
+        // Act
+        Window<User> window = repository.findWindow(
+            UserSpecifications.withFilters("   ", "   "),
+            PageRequest.of(0, 10, UserRepository.keysetSort(SortDirection.ASC)),
+            ScrollPosition.keyset()
+        );
+
+        // Assert
+        List<User> users = window.getContent();
+        assertThat(users).isNotEmpty();
+    }
+
+    @Test
     void findWindowShouldReturnSecondWindowUsingKeysetPagination() {
         // Act
         Window<User> firstWindow = repository.findWindow(

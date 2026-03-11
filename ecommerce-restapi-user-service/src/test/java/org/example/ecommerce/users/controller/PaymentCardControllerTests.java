@@ -2,8 +2,9 @@ package org.example.ecommerce.users.controller;
 
 import org.example.ecommerce.users.dto.request.PaymentCardRequest;
 import org.example.ecommerce.users.dto.response.PaymentCardResponse;
+import org.example.ecommerce.users.exception.custom.PaymentCardNotFoundException;
+import org.example.ecommerce.users.exception.custom.PaymentCardNumberAlreadyExistsException;
 import org.example.ecommerce.users.service.PaymentCardService;
-import org.example.ecommerce.users.utils.TestDataGenerator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,7 +66,7 @@ class PaymentCardControllerTests {
 
     @Test
     @DisplayName("GET /api/v1/users/{userId}/cards/{cardId} -> 200 OK")
-    void getById_shouldReturnCard() throws Exception {
+    void getByIdShouldReturnCard() throws Exception {
         // Arrange
         Long userId = id();
         Long cardId = id();
@@ -82,6 +83,23 @@ class PaymentCardControllerTests {
             .andExpect(jsonPath("$.active").value(card.active()));
 
         verify(cardService).getById(userId, cardId);
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/users/{userId}/cards/{cardId} -> 404 Not Found")
+    void getByIdShouldReturnNotFoundWhenCardDoesNotExist() throws Exception {
+        // Arrange
+        Long userId = id();
+        Long cardId = id();
+
+        when(cardService.getById(userId, cardId))
+            .thenThrow(new PaymentCardNotFoundException(cardId));
+
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/users/{userId}/cards/{cardId}", userId, cardId))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.title").value("Payment card not found"))
+            .andExpect(jsonPath("$.detail").value("Payment card not found with id: " + cardId));
     }
 
     @Test
@@ -108,7 +126,7 @@ class PaymentCardControllerTests {
             .andExpect(jsonPath("$.holder").value(response.holder()))
             .andExpect(jsonPath("$.active").value(response.active()));
 
-        verify(cardService).create(eq(userId), eq(request));
+        verify(cardService).create(userId, request);
     }
 
     @Test
@@ -127,6 +145,28 @@ class PaymentCardControllerTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/users/{userId}/cards when card number already exists -> 409 Conflict")
+    void createShouldReturnConflictWhenCardNumberAlreadyExists() throws Exception {
+        // Arrange
+        Long userId = id();
+        PaymentCardRequest request = paymentCardRequest();
+
+        when(cardService.create(eq(userId), eq(request)))
+            .thenThrow(new PaymentCardNumberAlreadyExistsException(
+                List.of("1111222233334444")
+            ));
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users/{userId}/cards", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.title").value("Payment card number already exists"))
+            .andExpect(jsonPath("$.detail").value("Payment card number(s) already exist: 1111222233334444"))
+            .andExpect(jsonPath("$.numbers[0]").value("1111222233334444"));
     }
 
     @Test

@@ -7,6 +7,8 @@ import org.example.ecommerce.users.dto.response.PaymentCardResponse;
 import org.example.ecommerce.users.dto.response.UserListResponse;
 import org.example.ecommerce.users.dto.response.UserResponse;
 import org.example.ecommerce.users.dto.response.UserScrollResponse;
+import org.example.ecommerce.users.exception.custom.UserEmailAlreadyExistsException;
+import org.example.ecommerce.users.exception.custom.UserNotFoundException;
 import org.example.ecommerce.users.repository.enums.SortDirection;
 import org.example.ecommerce.users.service.UserService;
 import org.junit.jupiter.api.DisplayName;
@@ -76,6 +78,21 @@ class UserControllerTests {
             .andExpect(jsonPath("$.active").value(response.active()));
 
         verify(userService).getById(userId);
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/users/{id} -> 404 Not Found")
+    void getByIdShouldReturnNotFoundWhenUserDoesNotExist() throws Exception {
+        // Arrange
+        Long userId = id();
+        when(userService.getById(userId))
+            .thenThrow(new UserNotFoundException(userId));
+
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/users/{id}", userId))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.title").value("User not found"))
+            .andExpect(jsonPath("$.detail").value("User not found with id: " + userId));
     }
 
     @Test
@@ -159,7 +176,25 @@ class UserControllerTests {
             .andExpect(jsonPath("$.email").value(response.email()))
             .andExpect(jsonPath("$.active").value(response.active()));
 
-        verify(userService).create(eq(request));
+        verify(userService).create(request);
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/users with duplicate email -> 409 Conflict")
+    void createShouldReturnConflictWhenEmailAlreadyExists() throws Exception {
+        // Arrange
+        UserRequest request = userRequest(List.of(paymentCardRequest()));
+
+        when(userService.create(eq(request)))
+            .thenThrow(new UserEmailAlreadyExistsException(request.email()));
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.title").value("User email already exists"))
+            .andExpect(jsonPath("$.detail").value("User with email already exists: " + request.email()));
     }
 
     @Test

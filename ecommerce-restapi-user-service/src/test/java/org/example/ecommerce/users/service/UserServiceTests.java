@@ -8,6 +8,7 @@ import org.example.ecommerce.users.dto.response.UserResponse;
 import org.example.ecommerce.users.dto.response.UserScrollResponse;
 import org.example.ecommerce.users.entity.PaymentCard;
 import org.example.ecommerce.users.entity.User;
+import org.example.ecommerce.users.exception.custom.DuplicatePaymentCardNumbersException;
 import org.example.ecommerce.users.exception.custom.PaymentCardNumberAlreadyExistsException;
 import org.example.ecommerce.users.exception.custom.UserAlreadyActiveException;
 import org.example.ecommerce.users.exception.custom.UserAlreadyInactiveException;
@@ -352,6 +353,62 @@ class UserServiceTests {
         verify(cardMapper).toEntity(cardRequest2);
         verify(userRepository).save(toSave);
         verify(userMapper).toResponse(saved);
+    }
+
+    @Test
+    void createShouldThrowWhenRequestContainsDuplicateCardNumbers() {
+        // Arrange
+        PaymentCardRequest cardRequest1 = new PaymentCardRequest(
+            "4111 1111 1111 1111",
+            "ALEX DUDKIN",
+            paymentCardRequest().expirationDate()
+        );
+
+        PaymentCardRequest cardRequest2 = new PaymentCardRequest(
+            "4111 1111 1111 1111",
+            "JOHN DOE",
+            paymentCardRequest().expirationDate().plusMonths(1)
+        );
+
+        UserRequest request = userRequest(List.of(cardRequest1, cardRequest2));
+
+        // Act & Assert
+        assertThrows(DuplicatePaymentCardNumbersException.class, () -> userService.create(request));
+
+        verifyNoInteractions(userRepository, userMapper, cardMapper, cardRepository);
+    }
+
+    @Test
+    void createShouldCreateUserWhenPaymentCardsIsNull() {
+        // Arrange
+        UserRequest request = new UserRequest(
+            name(),
+            surname(),
+            user().getBirthDate(),
+            user().getEmail(),
+            null
+        );
+
+        User toSave = user();
+        User saved = user();
+        UserResponse expected = userResponse();
+
+        when(userRepository.existsByEmail(request.email())).thenReturn(false);
+        when(userMapper.toEntity(request)).thenReturn(toSave);
+        when(userRepository.save(toSave)).thenReturn(saved);
+        when(userMapper.toResponse(saved)).thenReturn(expected);
+
+        // Act
+        UserResponse actual = userService.create(request);
+
+        // Assert
+        assertEquals(expected, actual);
+        verify(userRepository).existsByEmail(request.email());
+        verify(userMapper).toEntity(request);
+        verify(userRepository).save(toSave);
+        verify(userMapper).toResponse(saved);
+        verifyNoInteractions(cardMapper);
+        verify(cardRepository, never()).findExistingNumbers(any());
     }
 
     @Test

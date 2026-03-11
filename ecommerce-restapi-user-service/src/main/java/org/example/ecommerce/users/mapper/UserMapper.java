@@ -10,8 +10,6 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
-import java.util.Collection;
-
 @Mapper(uses = PaymentCardMapper.class, builder = @Builder(disableBuilder = true))
 public interface UserMapper {
 
