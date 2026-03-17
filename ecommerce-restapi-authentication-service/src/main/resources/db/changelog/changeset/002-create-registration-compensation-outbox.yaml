@@ -1,0 +1,49 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002
+      author: Alexander Dudkin
+      changes:
+        - createTable:
+            tableName: registration_compensation_outbox
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    unique: true
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(16)
+                  constraints:
+                    nullable: false
+                    checkConstraint: "status IN ('PENDING', 'COMPLETED', 'DEAD')"
+              - column:
+                  name: attempt_count
+                  type: INT
+                  defaultValueNumeric: "0"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: next_retry_at
+                  type: TIMESTAMP WITHOUT TIMEZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_error
+                  type: VARCHAR(4000)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITHOUT TIMEZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITHOUT TIMEZONE
+                  constraints:
+                    nullable: false

@@ -1,15 +1,24 @@
 package org.example.ecommerce.users.controller;
 
+import org.example.ecommerce.users.controller.config.TestSecurityConfig;
 import org.example.ecommerce.users.dto.request.PaymentCardRequest;
 import org.example.ecommerce.users.dto.response.PaymentCardResponse;
 import org.example.ecommerce.users.exception.custom.PaymentCardNotFoundException;
 import org.example.ecommerce.users.exception.custom.PaymentCardNumberAlreadyExistsException;
+import org.example.ecommerce.users.security.config.SecurityConfig;
+import org.example.ecommerce.users.security.filter.JwtAuthenticationFilter;
+import org.example.ecommerce.users.security.jwt.AccessGuard;
 import org.example.ecommerce.users.service.PaymentCardService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -22,6 +31,7 @@ import static org.example.ecommerce.users.utils.TestDataGenerator.paymentCardReq
 import static org.example.ecommerce.users.utils.TestDataGenerator.paymentCardResponse;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -32,7 +42,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(PaymentCardController.class)
+@WebMvcTest(
+    value = PaymentCardController.class,
+    excludeFilters = {
+        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class),
+        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthenticationFilter.class)
+    }
+)
+@Import(TestSecurityConfig.class)
+@AutoConfigureMockMvc(addFilters = false)
 class PaymentCardControllerTests {
 
     @Autowired
@@ -44,8 +62,12 @@ class PaymentCardControllerTests {
     @MockitoBean
     private PaymentCardService cardService;
 
+    @MockitoBean(name = "accessGuard")
+    private AccessGuard accessGuard;
+
     @Test
     @DisplayName("GET /api/v1/users/{userId}/cards -> 200 OK")
+    @WithMockUser(roles = "ADMIN")
     void getByUserIdShouldReturnCards() throws Exception {
         Long userId = id();
         PaymentCardResponse card = paymentCardResponse();
@@ -63,7 +85,43 @@ class PaymentCardControllerTests {
     }
 
     @Test
+    @DisplayName("GET /api/v1/users/{userId}/cards -> 200 OK for owner")
+    @WithMockUser(roles = "USER")
+    void getByUserIdShouldReturnCardsWhenAccessGuardAllowsAccess() throws Exception {
+        Long userId = id();
+        PaymentCardResponse card = paymentCardResponse();
+
+        when(accessGuard.canAccessUser(userId)).thenReturn(true);
+        when(cardService.getAllByUserId(userId)).thenReturn(List.of(card));
+
+        mockMvc.perform(get("/api/v1/users/{userId}/cards", userId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(card.id()));
+
+        verify(accessGuard).canAccessUser(userId);
+        verify(cardService).getAllByUserId(userId);
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/users/{userId}/cards -> 403 Forbidden")
+    @WithMockUser(roles = "USER")
+    void getByUserIdShouldReturnForbiddenWhenAccessIsDenied() throws Exception {
+        Long userId = id();
+
+        when(accessGuard.canAccessUser(userId)).thenReturn(false);
+
+        mockMvc.perform(get("/api/v1/users/{userId}/cards", userId))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.title").value("Access denied"))
+            .andExpect(jsonPath("$.detail").value("You do not have permission to access this resource"));
+
+        verify(accessGuard).canAccessUser(userId);
+        verifyNoInteractions(cardService);
+    }
+
+    @Test
     @DisplayName("GET /api/v1/users/{userId}/cards/{cardId} -> 200 OK")
+    @WithMockUser(roles = "ADMIN")
     void getByIdShouldReturnCard() throws Exception {
         Long userId = id();
         Long cardId = id();
@@ -83,6 +141,7 @@ class PaymentCardControllerTests {
 
     @Test
     @DisplayName("GET /api/v1/users/{userId}/cards/{cardId} -> 404 Not Found")
+    @WithMockUser(roles = "ADMIN")
     void getByIdShouldReturnNotFoundWhenCardDoesNotExist() throws Exception {
         Long userId = id();
         Long cardId = id();
@@ -98,6 +157,7 @@ class PaymentCardControllerTests {
 
     @Test
     @DisplayName("POST /api/v1/users/{userId}/cards -> 201 Created")
+    @WithMockUser(roles = "ADMIN")
     void createShouldReturnCreatedCard() throws Exception {
         Long userId = id();
         PaymentCardRequest request = paymentCardRequest();
@@ -123,6 +183,7 @@ class PaymentCardControllerTests {
 
     @Test
     @DisplayName("POST /api/v1/users/{userId}/cards with invalid body -> 400 Bad Request")
+    @WithMockUser(roles = "ADMIN")
     void createShouldReturnBadRequestWhenBodyIsInvalid() throws Exception {
         Long userId = id();
         PaymentCardRequest request = new PaymentCardRequest(
@@ -139,6 +200,7 @@ class PaymentCardControllerTests {
 
     @Test
     @DisplayName("POST /api/v1/users/{userId}/cards when card number already exists -> 409 Conflict")
+    @WithMockUser(roles = "ADMIN")
     void createShouldReturnConflictWhenCardNumberAlreadyExists() throws Exception {
         Long userId = id();
         PaymentCardRequest request = paymentCardRequest();
@@ -159,6 +221,7 @@ class PaymentCardControllerTests {
 
     @Test
     @DisplayName("PUT /api/v1/users/{userId}/cards/{cardId} -> 200 OK")
+    @WithMockUser(roles = "ADMIN")
     void updateShouldReturnUpdatedCard() throws Exception {
         Long userId = id();
         Long cardId = id();
@@ -181,6 +244,7 @@ class PaymentCardControllerTests {
 
     @Test
     @DisplayName("PUT /api/v1/users/{userId}/cards/{cardId} with invalid body -> 400 Bad Request")
+    @WithMockUser(roles = "ADMIN")
     void updateShouldReturnBadRequestWhenBodyIsInvalid() throws Exception {
         Long userId = id();
         Long cardId = id();
@@ -198,6 +262,7 @@ class PaymentCardControllerTests {
 
     @Test
     @DisplayName("PATCH /api/v1/users/{userId}/cards/{cardId}/activate -> 204 No Content")
+    @WithMockUser(roles = "ADMIN")
     void activateShouldReturnNoContent() throws Exception {
         Long userId = id();
         Long cardId = id();
@@ -211,6 +276,7 @@ class PaymentCardControllerTests {
 
     @Test
     @DisplayName("PATCH /api/v1/users/{userId}/cards/{cardId}/deactivate -> 204 No Content")
+    @WithMockUser(roles = "ADMIN")
     void deactivateShouldReturnNoContent() throws Exception {
         Long userId = id();
         Long cardId = id();
@@ -224,6 +290,7 @@ class PaymentCardControllerTests {
 
     @Test
     @DisplayName("DELETE /api/v1/users/{userId}/cards/{cardId} -> 204 No Content")
+    @WithMockUser(roles = "ADMIN")
     void deleteShouldReturnNoContent() throws Exception {
         Long userId = id();
         Long cardId = id();

@@ -5,6 +5,7 @@ import org.example.ecommerce.users.dto.request.PaymentCardRequest;
 import org.example.ecommerce.users.dto.response.PaymentCardResponse;
 import org.example.ecommerce.users.service.PaymentCardService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,17 +32,20 @@ public class PaymentCardController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN') or @accessGuard.canAccessUser(#userId)")
     public ResponseEntity<List<PaymentCardResponse>> getByUserId(@PathVariable Long userId) {
         return ResponseEntity.ok(cardService.getAllByUserId(userId));
     }
 
     @GetMapping("/{cardId}")
+    @PreAuthorize("hasRole('ADMIN') or @accessGuard.canAccessUser(#userId)")
     public ResponseEntity<PaymentCardResponse> getById(@PathVariable Long userId,
                                                        @PathVariable Long cardId) {
         return ResponseEntity.ok(cardService.getById(userId, cardId));
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or @accessGuard.canAccessUser(#userId)")
     public ResponseEntity<PaymentCardResponse> create(@PathVariable Long userId,
                                                       @Valid @RequestBody PaymentCardRequest request,
                                                       UriComponentsBuilder uriBuilder) {
@@ -55,6 +59,7 @@ public class PaymentCardController {
     }
 
     @PutMapping("/{cardId}")
+    @PreAuthorize("hasRole('ADMIN') or @accessGuard.canAccessUser(#userId)")
     public ResponseEntity<PaymentCardResponse> update(@PathVariable Long userId,
                                                       @PathVariable Long cardId,
                                                       @Valid @RequestBody PaymentCardRequest request) {
@@ -62,6 +67,7 @@ public class PaymentCardController {
     }
 
     @PatchMapping("/{cardId}/activate")
+    @PreAuthorize("hasRole('ADMIN') or @accessGuard.canAccessUser(#userId)")
     public ResponseEntity<Void> activate(@PathVariable Long userId,
                                          @PathVariable Long cardId) {
         cardService.activate(userId, cardId);
@@ -69,6 +75,7 @@ public class PaymentCardController {
     }
 
     @PatchMapping("/{cardId}/deactivate")
+    @PreAuthorize("hasRole('ADMIN') or @accessGuard.canAccessUser(#userId)")
     public ResponseEntity<Void> deactivate(@PathVariable Long userId,
                                            @PathVariable Long cardId) {
         cardService.deactivate(userId, cardId);
@@ -76,6 +83,7 @@ public class PaymentCardController {
     }
 
     @DeleteMapping("/{cardId}")
+    @PreAuthorize("hasRole('ADMIN') or @accessGuard.canAccessUser(#userId)")
     public ResponseEntity<Void> delete(@PathVariable Long userId,
                                        @PathVariable Long cardId) {
         cardService.delete(userId, cardId);
