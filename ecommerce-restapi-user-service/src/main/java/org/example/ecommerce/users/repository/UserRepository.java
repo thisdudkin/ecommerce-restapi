@@ -66,4 +66,6 @@ public interface UserRepository extends JpaRepository<User, Long>,
         };
     }
 
+    boolean existsByIdAndActiveTrue(Long userId);
+
 }

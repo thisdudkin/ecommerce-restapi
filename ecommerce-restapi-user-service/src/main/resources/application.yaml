@@ -25,15 +25,21 @@ spring:
     ansi:
       enabled: always
 
+security:
+  jwt:
+    public-key: ${JWT_PUBLIC_KEY}
+    issuer: authentication-service
+    trusted-internal-service: authentication-service
+
 decorator:
   datasource:
-    enabled: false
+    enabled: true
 
 logging:
   level:
     org.hibernate.SQL: off
     org.hibernate.orm.jdbc.bind: off
-    net.ttddyy.dsproxy.listener: off
+    net.ttddyy.dsproxy.listener: debug
 
 ---
 spring:

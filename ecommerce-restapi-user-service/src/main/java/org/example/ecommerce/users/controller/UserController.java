@@ -9,6 +9,7 @@ import org.example.ecommerce.users.dto.response.UserScrollResponse;
 import org.example.ecommerce.users.repository.enums.SortDirection;
 import org.example.ecommerce.users.service.UserService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,11 +35,13 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') OR @accessGuard.canAccessUser(#id)")
     public ResponseEntity<UserResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getById(id));
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserScrollResponse> getAll(@Valid @ModelAttribute UserScrollRequest request) {
         SortDirection sort = SortDirection.valueOf(request.resolvedDirection().toUpperCase());
         return ResponseEntity.ok(
@@ -53,6 +56,7 @@ public class UserController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('INTERNAL_SERVICE')")
     public ResponseEntity<UserResponse> create(@Valid @RequestBody UserRequest request,
                                                UriComponentsBuilder uriBuilder
     ) {
@@ -66,24 +70,28 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @accessGuard.canAccessUser(#id)")
     public ResponseEntity<UserResponse> update(@PathVariable Long id,
                                                @Valid @RequestBody UserUpdateRequest request) {
         return ResponseEntity.ok(userService.update(id, request));
     }
 
     @PatchMapping("/{id}/activate")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> activate(@PathVariable Long id) {
         userService.activate(id);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/deactivate")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deactivate(@PathVariable Long id) {
         userService.deactivate(id);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @accessGuard.canAccessUser(#id) or hasRole('INTERNAL_SERVICE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         userService.delete(id);
         return ResponseEntity.noContent().build();

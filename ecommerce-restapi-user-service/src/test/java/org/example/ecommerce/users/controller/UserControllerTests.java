@@ -1,5 +1,6 @@
 package org.example.ecommerce.users.controller;
 
+import org.example.ecommerce.users.controller.config.TestSecurityConfig;
 import org.example.ecommerce.users.dto.request.PaymentCardRequest;
 import org.example.ecommerce.users.dto.request.UserRequest;
 import org.example.ecommerce.users.dto.request.UserUpdateRequest;
@@ -10,12 +11,20 @@ import org.example.ecommerce.users.dto.response.UserScrollResponse;
 import org.example.ecommerce.users.exception.custom.UserEmailAlreadyExistsException;
 import org.example.ecommerce.users.exception.custom.UserNotFoundException;
 import org.example.ecommerce.users.repository.enums.SortDirection;
+import org.example.ecommerce.users.security.config.SecurityConfig;
+import org.example.ecommerce.users.security.filter.JwtAuthenticationFilter;
+import org.example.ecommerce.users.security.jwt.AccessGuard;
 import org.example.ecommerce.users.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -35,6 +44,7 @@ import static org.example.ecommerce.users.utils.TestDataGenerator.userResponse;
 import static org.example.ecommerce.users.utils.TestDataGenerator.userUpdateRequest;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -45,7 +55,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(UserController.class)
+@WebMvcTest(
+    value = UserController.class,
+    excludeFilters = {
+        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class),
+        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthenticationFilter.class)
+    }
+)
+@Import(TestSecurityConfig.class)
+@AutoConfigureMockMvc(addFilters = false)
 class UserControllerTests {
 
     @Autowired
@@ -57,8 +75,12 @@ class UserControllerTests {
     @MockitoBean
     private UserService userService;
 
+    @MockitoBean(name = "accessGuard")
+    private AccessGuard accessGuard;
+
     @Test
     @DisplayName("GET /api/v1/users/{id} -> 200 OK")
+    @WithMockUser(roles = "ADMIN")
     void getByIdShouldReturnUser() throws Exception {
         Long userId = id();
         PaymentCardResponse card = paymentCardResponse();
@@ -78,7 +100,43 @@ class UserControllerTests {
     }
 
     @Test
+    @DisplayName("GET /api/v1/users/{id} -> 200 OK for owner")
+    @WithMockUser(roles = "USER")
+    void getByIdShouldReturnUserWhenAccessGuardAllowsAccess() throws Exception {
+        Long userId = id();
+        UserResponse response = userResponse();
+
+        when(accessGuard.canAccessUser(userId)).thenReturn(true);
+        when(userService.getById(userId)).thenReturn(response);
+
+        mockMvc.perform(get("/api/v1/users/{id}", userId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(response.id()));
+
+        verify(accessGuard).canAccessUser(userId);
+        verify(userService).getById(userId);
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/users/{id} -> 403 Forbidden")
+    @WithMockUser(roles = "USER")
+    void getByIdShouldReturnForbiddenWhenAccessIsDenied() throws Exception {
+        Long userId = id();
+
+        when(accessGuard.canAccessUser(userId)).thenReturn(false);
+
+        mockMvc.perform(get("/api/v1/users/{id}", userId))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.title").value("Access denied"))
+            .andExpect(jsonPath("$.detail").value("You do not have permission to access this resource"));
+
+        verify(accessGuard).canAccessUser(userId);
+        verifyNoInteractions(userService);
+    }
+
+    @Test
     @DisplayName("GET /api/v1/users/{id} -> 404 Not Found")
+    @WithMockUser(roles = "ADMIN")
     void getByIdShouldReturnNotFoundWhenUserDoesNotExist() throws Exception {
         Long userId = id();
         when(userService.getById(userId))
@@ -92,6 +150,7 @@ class UserControllerTests {
 
     @Test
     @DisplayName("GET /api/v1/users -> 200 OK")
+    @WithMockUser(roles = "ADMIN")
     void getAllShouldReturnScrollResponse() throws Exception {
         String name = name();
         String surname = surname();
@@ -123,6 +182,7 @@ class UserControllerTests {
 
     @Test
     @DisplayName("GET /api/v1/users with default params -> 200 OK")
+    @WithMockUser(roles = "ADMIN")
     void getAllShouldUseDefaultParams() throws Exception {
         UserScrollResponse response = new UserScrollResponse(List.of(), false, null);
 
@@ -140,13 +200,27 @@ class UserControllerTests {
 
     @Test
     @DisplayName("GET /api/v1/users with invalid size -> 400 Bad Request")
+    @WithMockUser(roles = "ADMIN")
     void getAllShouldReturnBadRequestWhenSizeIsInvalid() throws Exception {
         mockMvc.perform(get("/api/v1/users").param("size", "0"))
             .andExpect(status().isBadRequest());
     }
 
     @Test
+    @DisplayName("GET /api/v1/users -> 403 Forbidden for regular user")
+    @WithMockUser(roles = "USER")
+    void getAllShouldReturnForbiddenForRegularUser() throws Exception {
+        mockMvc.perform(get("/api/v1/users"))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.title").value("Access denied"))
+            .andExpect(jsonPath("$.detail").value("You do not have permission to access this resource"));
+
+        verifyNoInteractions(userService);
+    }
+
+    @Test
     @DisplayName("POST /api/v1/users -> 201 Created")
+    @WithMockUser(roles = "INTERNAL_SERVICE")
     void createShouldReturnCreatedUser() throws Exception {
         UserRequest request = userRequest(List.of(paymentCardRequest()));
         UserResponse response = userResponse();
@@ -168,7 +242,24 @@ class UserControllerTests {
     }
 
     @Test
+    @DisplayName("POST /api/v1/users -> 403 Forbidden for regular user")
+    @WithMockUser(roles = "USER")
+    void createShouldReturnForbiddenWhenRoleIsInvalid() throws Exception {
+        UserRequest request = userRequest(List.of(paymentCardRequest()));
+
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.title").value("Access denied"))
+            .andExpect(jsonPath("$.detail").value("You do not have permission to access this resource"));
+
+        verifyNoInteractions(userService);
+    }
+
+    @Test
     @DisplayName("POST /api/v1/users with duplicate email -> 409 Conflict")
+    @WithMockUser(roles = "INTERNAL_SERVICE")
     void createShouldReturnConflictWhenEmailAlreadyExists() throws Exception {
         UserRequest request = userRequest(List.of(paymentCardRequest()));
 
@@ -185,6 +276,7 @@ class UserControllerTests {
 
     @Test
     @DisplayName("POST /api/v1/users with invalid body -> 400 Bad Request")
+    @WithMockUser(roles = "INTERNAL_SERVICE")
     void createShouldReturnBadRequestWhenBodyIsInvalid() throws Exception {
         UserRequest request = new UserRequest(
             "",
@@ -204,6 +296,7 @@ class UserControllerTests {
 
     @Test
     @DisplayName("PUT /api/v1/users/{id} -> 200 OK")
+    @WithMockUser(roles = "ADMIN")
     void updateShouldReturnUpdatedUser() throws Exception {
         Long userId = id();
         UserUpdateRequest request = userUpdateRequest();
@@ -226,6 +319,7 @@ class UserControllerTests {
 
     @Test
     @DisplayName("PUT /api/v1/users/{id} with invalid body -> 400 Bad Request")
+    @WithMockUser(roles = "ADMIN")
     void updateShouldReturnBadRequestWhenBodyIsInvalid() throws Exception {
         Long userId = id();
         UserUpdateRequest request = new UserUpdateRequest(
@@ -243,6 +337,7 @@ class UserControllerTests {
 
     @Test
     @DisplayName("PATCH /api/v1/users/{id}/activate -> 204 No Content")
+    @WithMockUser(roles = "ADMIN")
     void activateShouldReturnNoContent() throws Exception {
         Long userId = id();
         doNothing().when(userService).activate(userId);
@@ -255,6 +350,7 @@ class UserControllerTests {
 
     @Test
     @DisplayName("PATCH /api/v1/users/{id}/deactivate -> 204 No Content")
+    @WithMockUser(roles = "ADMIN")
     void deactivateShouldReturnNoContent() throws Exception {
         Long userId = id();
         doNothing().when(userService).deactivate(userId);
@@ -267,6 +363,7 @@ class UserControllerTests {
 
     @Test
     @DisplayName("DELETE /api/v1/users/{id} -> 204 No Content")
+    @WithMockUser(roles = "ADMIN")
     void deleteShouldReturnNoContent() throws Exception {
         Long userId = id();
         doNothing().when(userService).delete(userId);
