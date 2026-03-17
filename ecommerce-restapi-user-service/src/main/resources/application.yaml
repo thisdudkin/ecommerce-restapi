@@ -33,7 +33,9 @@ security:
 
 decorator:
   datasource:
-    enabled: true
+    datasource-proxy:
+      multiline: true
+      format-sql: true
 
 logging:
   level:

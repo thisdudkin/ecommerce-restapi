@@ -1,0 +1,21 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004
+      author: Alexander Dudkin
+      changes:
+        - createIndex:
+            indexName: idx_orders_user_created_at_id
+            tableName: orders
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: created_at
+              - column:
+                  name: id
+
+      rollback:
+        - dropIndex:
+            indexName: idx_orders_user_created_at_id
+            tableName: orders
+

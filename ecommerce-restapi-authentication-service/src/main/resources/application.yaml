@@ -36,13 +36,15 @@ registration:
 
 decorator:
   datasource:
-    enabled: off
+    datasource-proxy:
+      multiline: true
+      format-sql: true
 
 logging:
   level:
     org.hibernate.SQL: off
     org.hibernate.orm.jdbc.bind: off
-    net.ttddyy.dsproxy.listener: off
+    net.ttddyy.dsproxy.listener: debug
 
 ---
 spring:

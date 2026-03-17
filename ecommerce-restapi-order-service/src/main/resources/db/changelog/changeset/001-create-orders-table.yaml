@@ -1,0 +1,63 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001
+      author: Alexander Dudkin
+      changes:
+        - createTable:
+            tableName: orders
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: "NEW"
+                  constraints:
+                    nullable: false
+                    checkConstraint: "status IN ('NEW', 'PAID', 'CANCELLED', 'COMPLETED')"
+
+              - column:
+                  name: total_price
+                  type: NUMERIC(19, 2)
+                  defaultValueNumeric: "0.00"
+                  constraints:
+                    nullable: false
+                    checkConstraint: "total_price >= 0"
+
+              - column:
+                  name: deleted
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValueNumeric: "0"
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITHOUT TIMEZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITHOUT TIMEZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
