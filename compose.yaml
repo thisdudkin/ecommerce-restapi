@@ -1,0 +1,44 @@
+services:
+  user-service:
+    image: uglyraddan/ecommerce-restapi-user-service
+    container_name: user-service
+    environment:
+      SERVER_PORT: 8081
+      USERS_DB_PASSWORD: ${USERS_DB_PASSWORD}
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17.0
+    container_name: postgres
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB}
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:     ["CMD-SHELL", "pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_USER}"]
+      interval: 30s
+      timeout:  5s
+      retries:  5
+
+  redis:
+    image: redis:8.0-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout:  5s
+      retries:  5
+
+volumes:
+  postgres_data:
+    driver: local
