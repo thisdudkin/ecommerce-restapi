@@ -28,16 +28,13 @@ class UserCursorCodecTests {
 
     @Test
     void shouldEncodeCursorToUrlSafeBase64String() {
-        // Arrange
         UserCursorCodec codec = new UserCursorCodec(objectMapper);
 
         LocalDateTime createdAt = LocalDateTime.of(2024, 3, 10, 12, 30, 45);
         Long id = 123L;
 
-        // Act
         String cursor = codec.encode(createdAt, id, SortDirection.ASC);
 
-        // Assert
         assertThat(cursor)
             .isNotBlank()
             .doesNotContain("+")
@@ -47,7 +44,6 @@ class UserCursorCodecTests {
 
     @Test
     void shouldDecodeValidCursorToForwardScrollPosition() {
-        // Arrange
         UserCursorCodec codec = new UserCursorCodec(objectMapper);
 
         LocalDateTime createdAt = LocalDateTime.of(2024, 3, 10, 12, 30, 45);
@@ -59,10 +55,8 @@ class UserCursorCodecTests {
             .withoutPadding()
             .encodeToString(json.getBytes(StandardCharsets.UTF_8));
 
-        // Act
         ScrollPosition position = codec.decode(cursor, SortDirection.ASC);
 
-        // Assert
         assertThat(position).isInstanceOf(KeysetScrollPosition.class);
 
         KeysetScrollPosition keysetPosition = (KeysetScrollPosition) position;
@@ -75,17 +69,14 @@ class UserCursorCodecTests {
 
     @Test
     void shouldPreserveCreatedAtAndIdWhenEncodingAndDecodingCursor() {
-        // Arrange
         UserCursorCodec codec = new UserCursorCodec(objectMapper);
 
         LocalDateTime createdAt = LocalDateTime.of(2025, 1, 15, 8, 45, 0);
         Long id = 999L;
 
-        // Act
         String cursor = codec.encode(createdAt, id, SortDirection.DESC);
         ScrollPosition position = codec.decode(cursor, SortDirection.DESC);
 
-        // Assert
         assertThat(position).isInstanceOf(KeysetScrollPosition.class);
 
         KeysetScrollPosition keysetPosition = (KeysetScrollPosition) position;
@@ -98,14 +89,11 @@ class UserCursorCodecTests {
 
     @Test
     void shouldThrowInvalidCursorExceptionWhenRequestedDirectionDoesNotMatchCursorDirection() {
-        // Arrange
         UserCursorCodec codec = new UserCursorCodec(objectMapper);
         LocalDateTime createdAt = LocalDateTime.of(2024, 6, 1, 10, 0, 0);
 
-        // Act
         String cursor = codec.encode(createdAt, 55L, SortDirection.ASC);
 
-        // Assert
         assertThatThrownBy(() -> codec.decode(cursor, SortDirection.DESC))
             .isInstanceOf(InvalidCursorException.class)
             .hasMessage("Cursor direction does not match request direction");
@@ -113,10 +101,8 @@ class UserCursorCodecTests {
 
     @Test
     void shouldThrowInvalidCursorExceptionWhenCursorIsNotValidBase64() {
-        // Arrange
         UserCursorCodec codec = new UserCursorCodec(objectMapper);
 
-        // Act & Assert
         assertThatThrownBy(() -> codec.decode("%%%not-valid-base64%%%", SortDirection.ASC))
             .isInstanceOf(InvalidCursorException.class)
             .hasMessage("Cursor is invalid or malformed");
@@ -124,14 +110,12 @@ class UserCursorCodecTests {
 
     @Test
     void shouldThrowInvalidCursorExceptionWhenCursorContainsInvalidJson() {
-        // Arrange
         UserCursorCodec codec = new UserCursorCodec(objectMapper);
 
         String cursor = Base64.getUrlEncoder()
             .withoutPadding()
             .encodeToString("not-json".getBytes(StandardCharsets.UTF_8));
 
-        // Act & Assert
         assertThatThrownBy(() -> codec.decode(cursor, SortDirection.ASC))
             .isInstanceOf(InvalidCursorException.class)
             .hasMessage("Cursor is invalid or malformed");
@@ -139,7 +123,6 @@ class UserCursorCodecTests {
 
     @Test
     void shouldThrowInvalidCursorExceptionWhenCursorPayloadDoesNotContainDirection() {
-        // Arrange
         UserCursorCodec codec = new UserCursorCodec(objectMapper);
 
         String json = "{\"id\":123}";
@@ -147,7 +130,6 @@ class UserCursorCodecTests {
             .withoutPadding()
             .encodeToString(json.getBytes(StandardCharsets.UTF_8));
 
-        // Act & Assert
         assertThatThrownBy(() -> codec.decode(cursor, SortDirection.ASC))
             .isInstanceOf(InvalidCursorException.class)
             .hasMessage("Cursor direction does not match request direction");
@@ -155,7 +137,6 @@ class UserCursorCodecTests {
 
     @Test
     void shouldThrowInvalidCursorExceptionWhenObjectMapperFailsToReadPayload() {
-        // Arrange
         ObjectMapper failingObjectMapper = mock(ObjectMapper.class);
 
         when(failingObjectMapper.readValue(anyString(), eq(UserCursorPayload.class)))
@@ -167,7 +148,6 @@ class UserCursorCodecTests {
             .withoutPadding()
             .encodeToString("{\"some\":\"json\"}".getBytes(StandardCharsets.UTF_8));
 
-        // Act & Assert
         assertThatThrownBy(() -> codec.decode(cursor, SortDirection.ASC))
             .isInstanceOf(InvalidCursorException.class)
             .hasMessage("Cursor is invalid or malformed");
@@ -175,7 +155,6 @@ class UserCursorCodecTests {
 
     @Test
     void shouldThrowInvalidCursorExceptionWhenObjectMapperFailsToEncodePayload() {
-        // Arrange
         ObjectMapper failingObjectMapper = mock(ObjectMapper.class);
         UserCursorCodec codec = new UserCursorCodec(failingObjectMapper);
 
@@ -184,7 +163,6 @@ class UserCursorCodecTests {
 
         ThrowingCallable act = () -> codec.encode(LocalDateTime.now(), 1L, SortDirection.ASC);
 
-        // Act & Assert
         assertThatThrownBy(act)
             .isInstanceOf(InvalidCursorException.class)
             .hasMessage("Failed to encode cursor");

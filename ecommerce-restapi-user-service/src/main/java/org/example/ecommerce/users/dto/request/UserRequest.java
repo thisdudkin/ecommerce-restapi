@@ -31,4 +31,5 @@ public record UserRequest(
 
     @Valid
     List<PaymentCardRequest> paymentCards
-) implements Serializable { }
+) implements Serializable {
+}

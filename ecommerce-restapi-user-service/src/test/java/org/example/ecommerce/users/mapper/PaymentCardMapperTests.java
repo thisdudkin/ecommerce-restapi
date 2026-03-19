@@ -18,14 +18,12 @@ class PaymentCardMapperTests {
 
     @Test
     void toEntityShouldMapRequestToEntity() {
-        // Arrange
         PaymentCardRequest request = new PaymentCardRequest(
             "4111 1111 1111 1111",
             "JOHN DOE",
             LocalDate.of(2030, 12, 31)
         );
 
-        // Act
         PaymentCard entity = paymentCardMapper.toEntity(request);
 
         assertThat(entity).isNotNull();
@@ -43,7 +41,6 @@ class PaymentCardMapperTests {
 
     @Test
     void updateEntityShouldUpdateExistingEntity() {
-        // Arrange
         PaymentCardRequest request = new PaymentCardRequest(
             "5555 5555 5555 5555",
             "JANE DOE",
@@ -63,10 +60,8 @@ class PaymentCardMapperTests {
         entity.setCreatedAt(LocalDateTime.of(2024, 1, 1, 10, 0));
         entity.setUpdatedAt(LocalDateTime.of(2024, 1, 2, 10, 0));
 
-        // Act
         paymentCardMapper.updateEntity(request, entity);
 
-        // Assert
         assertThat(entity.getNumber()).isEqualTo(request.number());
         assertThat(entity.getHolder()).isEqualTo(request.holder());
         assertThat(entity.getExpirationDate()).isEqualTo(request.expirationDate());
@@ -80,7 +75,6 @@ class PaymentCardMapperTests {
 
     @Test
     void toResponseShouldMapEntityToResponse() {
-        // Arrange
         PaymentCard entity = new PaymentCard();
         entity.setId(11L);
         entity.setNumber("4000 0000 0000 0002");
@@ -90,10 +84,8 @@ class PaymentCardMapperTests {
         entity.setCreatedAt(LocalDateTime.of(2024, 3, 10, 12, 15));
         entity.setUpdatedAt(LocalDateTime.of(2024, 3, 11, 13, 20));
 
-        // Act
         PaymentCardResponse response = paymentCardMapper.toResponse(entity);
 
-        // Assert
         assertThat(response).isNotNull();
         assertThat(response.id()).isEqualTo(entity.getId());
         assertThat(response.number()).isEqualTo(entity.getNumber());

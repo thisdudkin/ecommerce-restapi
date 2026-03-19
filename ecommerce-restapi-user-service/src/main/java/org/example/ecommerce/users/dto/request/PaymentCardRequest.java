@@ -20,4 +20,5 @@ public record PaymentCardRequest(
     @NotNull(message = "Expiration date mustn't be null.")
     @Future(message = "Expiration date must be in the future.")
     LocalDate expirationDate
-) implements Serializable { }
+) implements Serializable {
+}

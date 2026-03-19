@@ -31,7 +31,6 @@ class UserMapperTests {
 
     @Test
     void toEntityShouldMapFieldsAndIgnorePaymentCards() {
-        // Arrange
         UserRequest request = new UserRequest(
             "Alexander",
             "Dudkin",
@@ -42,10 +41,8 @@ class UserMapperTests {
             )
         );
 
-        // Act
         User entity = userMapper.toEntity(request);
 
-        // Assert
         assertThat(entity).isNotNull();
         assertThat(entity.getName()).isEqualTo(request.name());
         assertThat(entity.getSurname()).isEqualTo(request.surname());
@@ -63,7 +60,6 @@ class UserMapperTests {
 
     @Test
     void updateEntityShouldUpdateFieldsAndKeepPaymentCards() {
-        // Arrange
         UserUpdateRequest request = new UserUpdateRequest(
             "UpdatedName",
             "UpdatedSurname",
@@ -92,10 +88,8 @@ class UserMapperTests {
         entity.setUpdatedAt(LocalDateTime.of(2024, 1, 2, 10, 0));
         entity.setPaymentCards(existingCards);
 
-        // Act
         userMapper.updateEntity(request, entity);
 
-        // Assert
         assertThat(entity.getName()).isEqualTo(request.name());
         assertThat(entity.getSurname()).isEqualTo(request.surname());
         assertThat(entity.getBirthDate()).isEqualTo(request.birthDate());
@@ -111,7 +105,6 @@ class UserMapperTests {
 
     @Test
     void toResponseShouldMapEntityToResponse() {
-        // Arrange
         PaymentCard card = new PaymentCard();
         card.setId(100L);
         card.setNumber("4000 0000 0000 0002");
@@ -132,10 +125,8 @@ class UserMapperTests {
         entity.setUpdatedAt(LocalDateTime.of(2024, 2, 11, 12, 0));
         entity.addCard(card);
 
-        // Act
         UserResponse response = userMapper.toResponse(entity);
 
-        // Assert
         assertThat(response).isNotNull();
         assertThat(response.id()).isEqualTo(entity.getId());
         assertThat(response.name()).isEqualTo(entity.getName());
@@ -159,7 +150,6 @@ class UserMapperTests {
 
     @Test
     void toListResponseShouldMapEntityToListResponse() {
-        // Arrange
         User entity = new User();
         entity.setId(2L);
         entity.setName("Ivan");
@@ -170,10 +160,8 @@ class UserMapperTests {
         entity.setCreatedAt(LocalDateTime.of(2024, 4, 1, 8, 30));
         entity.setUpdatedAt(LocalDateTime.of(2024, 4, 2, 9, 45));
 
-        // Act
         UserListResponse response = userMapper.toListResponse(entity);
 
-        // Assert
         assertThat(response).isNotNull();
         assertThat(response.id()).isEqualTo(entity.getId());
         assertThat(response.name()).isEqualTo(entity.getName());

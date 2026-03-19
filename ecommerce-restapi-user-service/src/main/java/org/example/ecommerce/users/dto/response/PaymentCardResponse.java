@@ -12,4 +12,5 @@ public record PaymentCardResponse(
     Boolean active,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
-) implements Serializable { }
+) implements Serializable {
+}

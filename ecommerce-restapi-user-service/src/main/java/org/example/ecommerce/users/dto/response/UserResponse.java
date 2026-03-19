@@ -15,4 +15,5 @@ public record UserResponse(
     Set<PaymentCardResponse> paymentCards,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
-) implements Serializable { }
+) implements Serializable {
+}

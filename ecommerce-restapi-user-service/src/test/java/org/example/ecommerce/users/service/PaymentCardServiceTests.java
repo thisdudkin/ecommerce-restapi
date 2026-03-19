@@ -380,7 +380,6 @@ class PaymentCardServiceTests {
 
     @Test
     void createShouldCreateCardWhenUserExistsAndNumberUnique() {
-        // Arrange
         Long userId = id();
 
         User owner = user(userId);
@@ -395,10 +394,8 @@ class PaymentCardServiceTests {
         when(cardRepository.save(card)).thenReturn(savedCard);
         when(cardMapper.toResponse(savedCard)).thenReturn(expected);
 
-        // Act
         PaymentCardResponse actual = cardService.create(userId, request);
 
-        // Assert
         assertEquals(expected, actual);
         verify(userRepository).findByIdForUpdate(userId);
         verify(cardRepository).existsByNumber(request.number());
@@ -409,13 +406,11 @@ class PaymentCardServiceTests {
 
     @Test
     void createShouldThrowWhenUserNotFound() {
-        // Arrange
         Long userId = id();
         PaymentCardRequest request = paymentCardRequest();
 
         when(userRepository.findByIdForUpdate(userId)).thenReturn(Optional.empty());
 
-        // Act & Assert
         assertThrows(UserNotFoundException.class, () -> cardService.create(userId, request));
 
         verify(userRepository).findByIdForUpdate(userId);
@@ -427,7 +422,6 @@ class PaymentCardServiceTests {
 
     @Test
     void createShouldThrowWhenUserCardsLimitExceeded() {
-        // Arrange
         Long userId = id();
 
         User owner = user(userId);
@@ -439,7 +433,6 @@ class PaymentCardServiceTests {
 
         when(userRepository.findByIdForUpdate(userId)).thenReturn(Optional.of(owner));
 
-        // Act & Assert
         assertThrows(UserPaymentCardsLimitExceededException.class, () -> cardService.create(userId, request));
 
         verify(userRepository).findByIdForUpdate(userId);
@@ -451,7 +444,6 @@ class PaymentCardServiceTests {
 
     @Test
     void createShouldThrowWhenCardNumberAlreadyExists() {
-        // Arrange
         Long userId = id();
 
         User owner = user(userId);
@@ -460,7 +452,6 @@ class PaymentCardServiceTests {
         when(userRepository.findByIdForUpdate(userId)).thenReturn(Optional.of(owner));
         when(cardRepository.existsByNumber(request.number())).thenReturn(true);
 
-        // Act & Assert
         assertThrows(PaymentCardNumberAlreadyExistsException.class, () -> cardService.create(userId, request));
 
         verify(userRepository).findByIdForUpdate(userId);
@@ -472,7 +463,6 @@ class PaymentCardServiceTests {
 
     @Test
     void deleteShouldDeleteCardWhenOwnedByUser() {
-        // Arrange
         Long userId = id();
         Long cardId = id();
 
@@ -482,23 +472,19 @@ class PaymentCardServiceTests {
 
         when(cardRepository.findByIdWithUser(cardId)).thenReturn(Optional.of(card));
 
-        // Act
         cardService.delete(userId, cardId);
 
-        // Assert
         verify(cardRepository).findByIdWithUser(cardId);
         verify(cardRepository).delete(card);
     }
 
     @Test
     void deleteShouldThrowWhenCardNotFound() {
-        // Arrange
         Long userId = id();
         Long cardId = id();
 
         when(cardRepository.findByIdWithUser(cardId)).thenReturn(Optional.empty());
 
-        // Act & Assert
         assertThrows(PaymentCardNotFoundException.class, () -> cardService.delete(userId, cardId));
 
         verify(cardRepository).findByIdWithUser(cardId);
@@ -507,7 +493,6 @@ class PaymentCardServiceTests {
 
     @Test
     void deleteShouldThrowWhenCardDoesNotBelongToUser() {
-        // Arrange
         Long userId = id();
         Long anotherUserId = id();
         Long cardId = id();
@@ -518,7 +503,6 @@ class PaymentCardServiceTests {
 
         when(cardRepository.findByIdWithUser(cardId)).thenReturn(Optional.of(card));
 
-        // Act & Assert
         assertThrows(PaymentCardOwnershipException.class, () -> cardService.delete(userId, cardId));
 
         verify(cardRepository).findByIdWithUser(cardId);

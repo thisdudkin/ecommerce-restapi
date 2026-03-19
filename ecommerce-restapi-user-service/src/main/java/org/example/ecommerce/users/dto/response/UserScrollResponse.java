@@ -7,4 +7,5 @@ public record UserScrollResponse(
     List<UserListResponse> items,
     boolean hasNext,
     String nextCursor
-) implements Serializable { }
+) implements Serializable {
+}

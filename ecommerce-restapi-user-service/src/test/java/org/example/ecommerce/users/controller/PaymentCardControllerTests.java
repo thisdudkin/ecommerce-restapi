@@ -20,7 +20,6 @@ import java.util.List;
 import static org.example.ecommerce.users.utils.TestDataGenerator.id;
 import static org.example.ecommerce.users.utils.TestDataGenerator.paymentCardRequest;
 import static org.example.ecommerce.users.utils.TestDataGenerator.paymentCardResponse;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,7 +47,6 @@ class PaymentCardControllerTests {
     @Test
     @DisplayName("GET /api/v1/users/{userId}/cards -> 200 OK")
     void getByUserIdShouldReturnCards() throws Exception {
-        // Arrange
         Long userId = id();
         PaymentCardResponse card = paymentCardResponse();
 
@@ -67,14 +65,12 @@ class PaymentCardControllerTests {
     @Test
     @DisplayName("GET /api/v1/users/{userId}/cards/{cardId} -> 200 OK")
     void getByIdShouldReturnCard() throws Exception {
-        // Arrange
         Long userId = id();
         Long cardId = id();
         PaymentCardResponse card = paymentCardResponse();
 
         when(cardService.getById(userId, cardId)).thenReturn(card);
 
-        // Act & Assert
         mockMvc.perform(get("/api/v1/users/{userId}/cards/{cardId}", userId, cardId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(card.id()))
@@ -88,14 +84,12 @@ class PaymentCardControllerTests {
     @Test
     @DisplayName("GET /api/v1/users/{userId}/cards/{cardId} -> 404 Not Found")
     void getByIdShouldReturnNotFoundWhenCardDoesNotExist() throws Exception {
-        // Arrange
         Long userId = id();
         Long cardId = id();
 
         when(cardService.getById(userId, cardId))
             .thenThrow(new PaymentCardNotFoundException(cardId));
 
-        // Act & Assert
         mockMvc.perform(get("/api/v1/users/{userId}/cards/{cardId}", userId, cardId))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.title").value("Payment card not found"))
@@ -105,14 +99,12 @@ class PaymentCardControllerTests {
     @Test
     @DisplayName("POST /api/v1/users/{userId}/cards -> 201 Created")
     void createShouldReturnCreatedCard() throws Exception {
-        // Arrange
         Long userId = id();
         PaymentCardRequest request = paymentCardRequest();
         PaymentCardResponse response = paymentCardResponse();
 
         when(cardService.create(userId, request)).thenReturn(response);
 
-        // Act & Assert
         mockMvc.perform(post("/api/v1/users/{userId}/cards", userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -132,7 +124,6 @@ class PaymentCardControllerTests {
     @Test
     @DisplayName("POST /api/v1/users/{userId}/cards with invalid body -> 400 Bad Request")
     void createShouldReturnBadRequestWhenBodyIsInvalid() throws Exception {
-        // Arrange
         Long userId = id();
         PaymentCardRequest request = new PaymentCardRequest(
             "",
@@ -140,7 +131,6 @@ class PaymentCardControllerTests {
             LocalDate.now().minusDays(1)
         );
 
-        // Act & Assert
         mockMvc.perform(post("/api/v1/users/{userId}/cards", userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -150,16 +140,14 @@ class PaymentCardControllerTests {
     @Test
     @DisplayName("POST /api/v1/users/{userId}/cards when card number already exists -> 409 Conflict")
     void createShouldReturnConflictWhenCardNumberAlreadyExists() throws Exception {
-        // Arrange
         Long userId = id();
         PaymentCardRequest request = paymentCardRequest();
 
-        when(cardService.create(eq(userId), eq(request)))
+        when(cardService.create(userId, request))
             .thenThrow(new PaymentCardNumberAlreadyExistsException(
                 List.of("1111222233334444")
             ));
 
-        // Act & Assert
         mockMvc.perform(post("/api/v1/users/{userId}/cards", userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -172,7 +160,6 @@ class PaymentCardControllerTests {
     @Test
     @DisplayName("PUT /api/v1/users/{userId}/cards/{cardId} -> 200 OK")
     void updateShouldReturnUpdatedCard() throws Exception {
-        // Arrange
         Long userId = id();
         Long cardId = id();
         PaymentCardRequest request = paymentCardRequest();
@@ -180,7 +167,6 @@ class PaymentCardControllerTests {
 
         when(cardService.update(userId, cardId, request)).thenReturn(response);
 
-        // Act & Assert
         mockMvc.perform(put("/api/v1/users/{userId}/cards/{cardId}", userId, cardId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -196,7 +182,6 @@ class PaymentCardControllerTests {
     @Test
     @DisplayName("PUT /api/v1/users/{userId}/cards/{cardId} with invalid body -> 400 Bad Request")
     void updateShouldReturnBadRequestWhenBodyIsInvalid() throws Exception {
-        // Arrange
         Long userId = id();
         Long cardId = id();
         PaymentCardRequest request = new PaymentCardRequest(
@@ -205,7 +190,6 @@ class PaymentCardControllerTests {
             LocalDate.now().minusDays(10)
         );
 
-        // Act & Assert
         mockMvc.perform(put("/api/v1/users/{userId}/cards/{cardId}", userId, cardId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -215,12 +199,10 @@ class PaymentCardControllerTests {
     @Test
     @DisplayName("PATCH /api/v1/users/{userId}/cards/{cardId}/activate -> 204 No Content")
     void activateShouldReturnNoContent() throws Exception {
-        // Arrange
         Long userId = id();
         Long cardId = id();
         doNothing().when(cardService).activate(userId, cardId);
 
-        // Act & Assert
         mockMvc.perform(patch("/api/v1/users/{userId}/cards/{cardId}/activate", userId, cardId))
             .andExpect(status().isNoContent());
 
@@ -230,12 +212,10 @@ class PaymentCardControllerTests {
     @Test
     @DisplayName("PATCH /api/v1/users/{userId}/cards/{cardId}/deactivate -> 204 No Content")
     void deactivateShouldReturnNoContent() throws Exception {
-        // Arrange
         Long userId = id();
         Long cardId = id();
         doNothing().when(cardService).deactivate(userId, cardId);
 
-        // Act & Assert
         mockMvc.perform(patch("/api/v1/users/{userId}/cards/{cardId}/deactivate", userId, cardId))
             .andExpect(status().isNoContent());
 
@@ -245,12 +225,10 @@ class PaymentCardControllerTests {
     @Test
     @DisplayName("DELETE /api/v1/users/{userId}/cards/{cardId} -> 204 No Content")
     void deleteShouldReturnNoContent() throws Exception {
-        // Act
         Long userId = id();
         Long cardId = id();
         doNothing().when(cardService).delete(userId, cardId);
 
-        // Act & Assert
         mockMvc.perform(delete("/api/v1/users/{userId}/cards/{cardId}", userId, cardId))
             .andExpect(status().isNoContent());
 

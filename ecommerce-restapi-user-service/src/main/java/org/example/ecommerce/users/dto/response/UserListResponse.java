@@ -13,4 +13,5 @@ public record UserListResponse(
     Boolean active,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
-) implements Serializable { }
+) implements Serializable {
+}

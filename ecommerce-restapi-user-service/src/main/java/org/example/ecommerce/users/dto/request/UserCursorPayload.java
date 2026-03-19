@@ -9,4 +9,5 @@ public record UserCursorPayload(
     LocalDateTime createdAt,
     Long id,
     SortDirection direction
-) implements Serializable { }
+) implements Serializable {
+}

@@ -357,7 +357,6 @@ class UserServiceTests {
 
     @Test
     void createShouldThrowWhenRequestContainsDuplicateCardNumbers() {
-        // Arrange
         PaymentCardRequest cardRequest1 = new PaymentCardRequest(
             "4111 1111 1111 1111",
             "ALEX DUDKIN",
@@ -372,7 +371,6 @@ class UserServiceTests {
 
         UserRequest request = userRequest(List.of(cardRequest1, cardRequest2));
 
-        // Act & Assert
         assertThrows(DuplicatePaymentCardNumbersException.class, () -> userService.create(request));
 
         verifyNoInteractions(userRepository, userMapper, cardMapper, cardRepository);
@@ -380,7 +378,6 @@ class UserServiceTests {
 
     @Test
     void createShouldCreateUserWhenPaymentCardsIsNull() {
-        // Arrange
         UserRequest request = new UserRequest(
             name(),
             surname(),
@@ -398,10 +395,8 @@ class UserServiceTests {
         when(userRepository.save(toSave)).thenReturn(saved);
         when(userMapper.toResponse(saved)).thenReturn(expected);
 
-        // Act
         UserResponse actual = userService.create(request);
 
-        // Assert
         assertEquals(expected, actual);
         verify(userRepository).existsByEmail(request.email());
         verify(userMapper).toEntity(request);

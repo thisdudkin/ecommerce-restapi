@@ -32,7 +32,7 @@ import java.util.Set;
     name = "users",
     uniqueConstraints = {
         @UniqueConstraint(name = "users_email_key",
-        columnNames = {"email"})
+            columnNames = {"email"})
     })
 @EntityListeners(AuditingEntityListener.class)
 public class User {
@@ -83,7 +83,6 @@ public class User {
     }
 
     public User() {
-        // no-args constructor
     }
 
     @Override

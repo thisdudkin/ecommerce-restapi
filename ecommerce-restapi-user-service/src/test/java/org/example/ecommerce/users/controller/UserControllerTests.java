@@ -33,7 +33,6 @@ import static org.example.ecommerce.users.utils.TestDataGenerator.userListRespon
 import static org.example.ecommerce.users.utils.TestDataGenerator.userRequest;
 import static org.example.ecommerce.users.utils.TestDataGenerator.userResponse;
 import static org.example.ecommerce.users.utils.TestDataGenerator.userUpdateRequest;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -61,14 +60,12 @@ class UserControllerTests {
     @Test
     @DisplayName("GET /api/v1/users/{id} -> 200 OK")
     void getByIdShouldReturnUser() throws Exception {
-        // Arrange
         Long userId = id();
         PaymentCardResponse card = paymentCardResponse();
         UserResponse response = userResponse(Set.of(card));
 
         when(userService.getById(userId)).thenReturn(response);
 
-        // Act & Assert
         mockMvc.perform(get("/api/v1/users/{id}", userId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(response.id()))
@@ -83,12 +80,10 @@ class UserControllerTests {
     @Test
     @DisplayName("GET /api/v1/users/{id} -> 404 Not Found")
     void getByIdShouldReturnNotFoundWhenUserDoesNotExist() throws Exception {
-        // Arrange
         Long userId = id();
         when(userService.getById(userId))
             .thenThrow(new UserNotFoundException(userId));
 
-        // Act & Assert
         mockMvc.perform(get("/api/v1/users/{id}", userId))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.title").value("User not found"))
@@ -98,7 +93,6 @@ class UserControllerTests {
     @Test
     @DisplayName("GET /api/v1/users -> 200 OK")
     void getAllShouldReturnScrollResponse() throws Exception {
-        // Arrange
         String name = name();
         String surname = surname();
         int size = 10;
@@ -110,7 +104,6 @@ class UserControllerTests {
         when(userService.getAll(name, surname, size, SortDirection.ASC, cursor))
             .thenReturn(response);
 
-        // Act & Assert
         mockMvc.perform(get("/api/v1/users")
                 .param("name", name)
                 .param("surname", surname)
@@ -131,13 +124,11 @@ class UserControllerTests {
     @Test
     @DisplayName("GET /api/v1/users with default params -> 200 OK")
     void getAllShouldUseDefaultParams() throws Exception {
-        // Arrange
         UserScrollResponse response = new UserScrollResponse(List.of(), false, null);
 
         when(userService.getAll(null, null, 20, SortDirection.DESC, null))
             .thenReturn(response);
 
-        // Act & Assert
         mockMvc.perform(get("/api/v1/users"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items").isArray())
@@ -150,7 +141,6 @@ class UserControllerTests {
     @Test
     @DisplayName("GET /api/v1/users with invalid size -> 400 Bad Request")
     void getAllShouldReturnBadRequestWhenSizeIsInvalid() throws Exception {
-        // Act & Assert
         mockMvc.perform(get("/api/v1/users").param("size", "0"))
             .andExpect(status().isBadRequest());
     }
@@ -158,13 +148,11 @@ class UserControllerTests {
     @Test
     @DisplayName("POST /api/v1/users -> 201 Created")
     void createShouldReturnCreatedUser() throws Exception {
-        // Arrange
         UserRequest request = userRequest(List.of(paymentCardRequest()));
         UserResponse response = userResponse();
 
         when(userService.create(request)).thenReturn(response);
 
-        // Act & Assert
         mockMvc.perform(post("/api/v1/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -182,13 +170,11 @@ class UserControllerTests {
     @Test
     @DisplayName("POST /api/v1/users with duplicate email -> 409 Conflict")
     void createShouldReturnConflictWhenEmailAlreadyExists() throws Exception {
-        // Arrange
         UserRequest request = userRequest(List.of(paymentCardRequest()));
 
-        when(userService.create(eq(request)))
+        when(userService.create(request))
             .thenThrow(new UserEmailAlreadyExistsException(request.email()));
 
-        // Act & Assert
         mockMvc.perform(post("/api/v1/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -200,7 +186,6 @@ class UserControllerTests {
     @Test
     @DisplayName("POST /api/v1/users with invalid body -> 400 Bad Request")
     void createShouldReturnBadRequestWhenBodyIsInvalid() throws Exception {
-        // Arrange
         UserRequest request = new UserRequest(
             "",
             "",
@@ -211,7 +196,6 @@ class UserControllerTests {
             )
         );
 
-        // Act & Assert
         mockMvc.perform(post("/api/v1/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -221,14 +205,12 @@ class UserControllerTests {
     @Test
     @DisplayName("PUT /api/v1/users/{id} -> 200 OK")
     void updateShouldReturnUpdatedUser() throws Exception {
-        // Arrange
         Long userId = id();
         UserUpdateRequest request = userUpdateRequest();
         UserResponse response = userResponse();
 
         when(userService.update(userId, request)).thenReturn(response);
 
-        // Act & Assert
         mockMvc.perform(put("/api/v1/users/{id}", userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -245,7 +227,6 @@ class UserControllerTests {
     @Test
     @DisplayName("PUT /api/v1/users/{id} with invalid body -> 400 Bad Request")
     void updateShouldReturnBadRequestWhenBodyIsInvalid() throws Exception {
-        // Arrange
         Long userId = id();
         UserUpdateRequest request = new UserUpdateRequest(
             "",
@@ -254,7 +235,6 @@ class UserControllerTests {
             "bad-email"
         );
 
-        // Act & Assert
         mockMvc.perform(put("/api/v1/users/{id}", userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -264,11 +244,9 @@ class UserControllerTests {
     @Test
     @DisplayName("PATCH /api/v1/users/{id}/activate -> 204 No Content")
     void activateShouldReturnNoContent() throws Exception {
-        // Arrange
         Long userId = id();
         doNothing().when(userService).activate(userId);
 
-        // Act & Assert
         mockMvc.perform(patch("/api/v1/users/{id}/activate", userId))
             .andExpect(status().isNoContent());
 
@@ -278,11 +256,9 @@ class UserControllerTests {
     @Test
     @DisplayName("PATCH /api/v1/users/{id}/deactivate -> 204 No Content")
     void deactivateShouldReturnNoContent() throws Exception {
-        // Arrange
         Long userId = id();
         doNothing().when(userService).deactivate(userId);
 
-        // Act & Assert
         mockMvc.perform(patch("/api/v1/users/{id}/deactivate", userId))
             .andExpect(status().isNoContent());
 
@@ -292,11 +268,9 @@ class UserControllerTests {
     @Test
     @DisplayName("DELETE /api/v1/users/{id} -> 204 No Content")
     void deleteShouldReturnNoContent() throws Exception {
-        // Arrange
         Long userId = id();
         doNothing().when(userService).delete(userId);
 
-        // Act & Assert
         mockMvc.perform(delete("/api/v1/users/{id}", userId))
             .andExpect(status().isNoContent());
 

@@ -1,7 +1,7 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/users_db
-    username: user_service
+    url: ${USERS_DB:jdbc:postgresql://localhost:5432/users_db}
+    username: ${USERS_DB_USERNAME:user_service}
     password: ${USERS_DB_PASSWORD}
   jpa:
     show-sql: false
@@ -41,8 +41,8 @@ spring:
     activate:
       on-profile: docker
   datasource:
-    url: jdbc:postgresql://postgres:5432/users_db
-    username: user_service
+    url: ${USERS_DB:jdbc:postgresql://postgres:5432/users_db}
+    username: ${USERS_DB_USERNAME:user_service}
     password: ${USERS_DB_PASSWORD}
   data:
     redis:

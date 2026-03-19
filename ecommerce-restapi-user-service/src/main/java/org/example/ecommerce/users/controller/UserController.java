@@ -1,9 +1,8 @@
 package org.example.ecommerce.users.controller;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import org.example.ecommerce.users.dto.request.UserRequest;
+import org.example.ecommerce.users.dto.request.UserScrollRequest;
 import org.example.ecommerce.users.dto.request.UserUpdateRequest;
 import org.example.ecommerce.users.dto.response.UserResponse;
 import org.example.ecommerce.users.dto.response.UserScrollResponse;
@@ -13,13 +12,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -40,15 +39,17 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<UserScrollResponse> getAll(
-        @RequestParam(required = false) String name,
-        @RequestParam(required = false) String surname,
-        @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size,
-        @RequestParam(defaultValue = "DESC") String direction,
-        @RequestParam(required = false) String cursor
-    ) {
-        SortDirection sort = SortDirection.valueOf(direction.toUpperCase());
-        return ResponseEntity.ok(userService.getAll(name, surname, size, sort, cursor));
+    public ResponseEntity<UserScrollResponse> getAll(@Valid @ModelAttribute UserScrollRequest request) {
+        SortDirection sort = SortDirection.valueOf(request.resolvedDirection().toUpperCase());
+        return ResponseEntity.ok(
+            userService.getAll(
+                request.name(),
+                request.surname(),
+                request.resolvedSize(),
+                sort,
+                request.cursor()
+            )
+        );
     }
 
     @PostMapping

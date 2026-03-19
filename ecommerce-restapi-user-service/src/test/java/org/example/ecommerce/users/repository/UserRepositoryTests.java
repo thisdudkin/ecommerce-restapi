@@ -39,11 +39,9 @@ class UserRepositoryTests {
 
     @Test
     void findByIdWithCardsShouldLoadCards() {
-        // Act
         User user = repository.findByIdWithCards(1L)
             .orElseThrow();
 
-        // Assert
         assertThat(user.getName()).isEqualTo("Alexander");
         assertThat(user.getSurname()).isEqualTo("Dudkin");
         assertThat(user.getPaymentCards()).hasSize(3);
@@ -51,23 +49,19 @@ class UserRepositoryTests {
 
     @Test
     void findByIdWithCardsShouldReturnEmptyWhenUserDoesNotExist() {
-        // Act
         Optional<User> undefined = repository.findByIdWithCards(999L);
 
-        // Assert
         assertThat(undefined).isEmpty();
     }
 
     @Test
     void findWindowShouldReturnFirstWindowUsingKeysetPagination() {
-        // Act
         Window<User> window = repository.findWindow(
             UserSpecifications.withFilters(null, null),
             PageRequest.of(0, 2, UserRepository.keysetSort(SortDirection.DESC)),
             ScrollPosition.keyset()
         );
 
-        // Assert
         List<User> users = window.getContent();
         assertThat(users).hasSize(2);
         assertThat(users)
@@ -78,14 +72,12 @@ class UserRepositoryTests {
 
     @Test
     void findWindowShouldFilterByNameIgnoringCaseAndTrim() {
-        // Act
         Window<User> window = repository.findWindow(
             UserSpecifications.withFilters("  alex  ", null),
             PageRequest.of(0, 10, UserRepository.keysetSort(SortDirection.ASC)),
             ScrollPosition.keyset()
         );
 
-        // Assert
         List<User> users = window.getContent();
         assertThat(users).isNotEmpty();
         assertThat(users)
@@ -95,14 +87,12 @@ class UserRepositoryTests {
 
     @Test
     void findWindowShouldFilterBySurnameIgnoringCaseAndTrim() {
-        // Act
         Window<User> window = repository.findWindow(
             UserSpecifications.withFilters(null, "  dud  "),
             PageRequest.of(0, 10, UserRepository.keysetSort(SortDirection.ASC)),
             ScrollPosition.keyset()
         );
 
-        // Assert
         List<User> users = window.getContent();
         assertThat(users).isNotEmpty();
         assertThat(users)
@@ -112,14 +102,12 @@ class UserRepositoryTests {
 
     @Test
     void findWindowShouldFilterByNameAndSurname() {
-        // Act
         Window<User> window = repository.findWindow(
             UserSpecifications.withFilters("alex", "dud"),
             PageRequest.of(0, 10, UserRepository.keysetSort(SortDirection.ASC)),
             ScrollPosition.keyset()
         );
 
-        // Assert
         List<User> users = window.getContent();
         assertThat(users).hasSize(1);
         assertThat(users.getFirst().getName()).isEqualTo("Alexander");
@@ -128,21 +116,18 @@ class UserRepositoryTests {
 
     @Test
     void findWindowShouldIgnoreBlankFilters() {
-        // Act
         Window<User> window = repository.findWindow(
             UserSpecifications.withFilters("   ", "   "),
             PageRequest.of(0, 10, UserRepository.keysetSort(SortDirection.ASC)),
             ScrollPosition.keyset()
         );
 
-        // Assert
         List<User> users = window.getContent();
         assertThat(users).isNotEmpty();
     }
 
     @Test
     void findWindowShouldReturnSecondWindowUsingKeysetPagination() {
-        // Act
         Window<User> firstWindow = repository.findWindow(
             UserSpecifications.withFilters(null, null),
             PageRequest.of(0, 2, UserRepository.keysetSort(SortDirection.DESC)),
@@ -157,7 +142,6 @@ class UserRepositoryTests {
             nextPosition
         );
 
-        // Assert
         List<User> users = secondWindow.getContent();
 
         assertThat(users).hasSize(2);
@@ -169,10 +153,8 @@ class UserRepositoryTests {
 
     @Test
     void updateActiveStatusShouldUpdateUser() {
-        // Act
         int rows = repository.updateActiveStatus(1L, Boolean.FALSE);
 
-        // Assert
         User user = repository.findById(1L)
             .orElseThrow();
         assertThat(rows).isEqualTo(1);
@@ -181,74 +163,60 @@ class UserRepositoryTests {
 
     @Test
     void updateActiveStatusShouldReturnZeroWhenUserNotExist() {
-        // Act
         int rows = repository.updateActiveStatus(999L, Boolean.FALSE);
 
-        // Assert
         assertThat(rows).isZero();
     }
 
     @Test
     void existsByEmailShouldReturnTrueWhenEmailExists() {
-        // Act
         boolean exists = repository.existsByEmail("raddanprofile@gmail.com");
 
-        // Assert
         assertThat(exists).isTrue();
     }
 
     @Test
     void existsByEmailShouldReturnFalseWhenEmailDoesNotExist() {
-        // Act
         boolean exists = repository.existsByEmail("unknown@mail.com");
 
-        // Assert
         assertThat(exists).isFalse();
     }
 
     @Test
     void existsByEmailAndIdNotShouldReturnTrueWhenEmailExistsForAnotherUser() {
-        // Act
         boolean exists = repository.existsByEmailAndIdNot(
             "raddanprofile@gmail.com",
             2L
         );
 
-        // Assert
         assertThat(exists).isTrue();
     }
 
     @Test
     void existsByEmailAndIdNotShouldReturnFalseWhenEmailBelongsToSameUser() {
-        // Act
         boolean exists = repository.existsByEmailAndIdNot(
             "raddanprofile@gmail.com",
             1L
         );
 
-        // Assert
         assertThat(exists).isFalse();
     }
 
     @Test
     void existsByEmailAndIdNotShouldReturnFalseWhenEmailDoesNotExist() {
-        // Act
         boolean exists = repository.existsByEmailAndIdNot(
             "unknown@mail.com",
             1L
         );
 
-        // Assert
         assertThat(exists).isFalse();
     }
 
     @Test
     void findByIdForUpdateShouldReturnUserWithCards() {
-        // Act
         User user = repository.findByIdForUpdate(1L)
             .orElseThrow();
 
-        // Assert
         assertThat(user.getName()).isEqualTo("Alexander");
         assertThat(user.getSurname()).isEqualTo("Dudkin");
         assertThat(user.getPaymentCards()).hasSize(3);
@@ -256,10 +224,8 @@ class UserRepositoryTests {
 
     @Test
     void findByIdForUpdateShouldReturnEmptyWhenUserDoesNotExist() {
-        // Act
         Optional<User> user = repository.findByIdForUpdate(999L);
 
-        // Assert
         assertThat(user).isEmpty();
     }
 

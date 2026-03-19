@@ -19,12 +19,13 @@ public interface PaymentCardRepository extends JpaRepository<PaymentCard, Long>,
     @Query("SELECT c FROM PaymentCard c WHERE c.id = :id")
     Optional<PaymentCard> findByIdWithUser(Long id);
 
-    @Query("""
-        SELECT c
-        FROM PaymentCard c
-        WHERE c.user.id = :userId
-        ORDER BY c.createdAt, c.id DESC
-        """)
+    @Query(value = """
+        SELECT id, user_id, number, holder, expiration_date,
+               active, created_at, updated_at
+        FROM payments_cards
+        WHERE user_id = :userId
+        ORDER BY created_at, id DESC
+        """, nativeQuery = true)
     List<PaymentCard> findAllByUserId(Long userId);
 
     @Query("SELECT number FROM PaymentCard WHERE number IN :numbers")

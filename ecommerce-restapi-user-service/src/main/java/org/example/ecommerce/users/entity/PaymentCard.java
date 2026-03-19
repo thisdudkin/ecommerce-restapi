@@ -65,7 +65,6 @@ public class PaymentCard {
     private LocalDateTime updatedAt;
 
     public PaymentCard() {
-        // no-args constructor
     }
 
     @Override

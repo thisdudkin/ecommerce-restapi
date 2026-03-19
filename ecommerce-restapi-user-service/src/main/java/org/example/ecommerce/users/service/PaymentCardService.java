@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 import static org.example.ecommerce.users.config.RedisCacheConfig.USER_WITH_CARDS;
+import static org.example.ecommerce.users.utils.UserServiceUtils.PAYMENT_CARDS_LIMIT;
 
 @Service
 public class PaymentCardService {
@@ -58,7 +59,7 @@ public class PaymentCardService {
         User user = userRepository.findByIdForUpdate(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
 
-        if (user.getPaymentCards().size() >= 5)
+        if (user.getPaymentCards().size() >= PAYMENT_CARDS_LIMIT)
             throw new UserPaymentCardsLimitExceededException();
         if (cardRepository.existsByNumber(request.number()))
             throw new PaymentCardNumberAlreadyExistsException(request.number());
