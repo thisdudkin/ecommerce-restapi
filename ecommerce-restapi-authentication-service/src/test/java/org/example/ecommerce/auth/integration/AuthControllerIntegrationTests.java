@@ -4,12 +4,15 @@ import org.example.ecommerce.auth.client.UserClient;
 import org.example.ecommerce.auth.dto.request.*;
 import org.example.ecommerce.auth.dto.response.TokenResponse;
 import org.example.ecommerce.auth.dto.response.UserResponse;
+import org.example.ecommerce.auth.entity.RefreshToken;
 import org.example.ecommerce.auth.entity.UserCredential;
+import org.example.ecommerce.auth.repository.RefreshTokenRepository;
 import org.example.ecommerce.auth.repository.UserCredentialRepository;
 import org.example.ecommerce.auth.security.enums.JwtType;
 import org.example.ecommerce.auth.security.enums.Role;
 import org.example.ecommerce.auth.security.jwt.JwtClaims;
 import org.example.ecommerce.auth.security.jwt.JwtService;
+import org.example.ecommerce.auth.service.auth.TokenIssuer;
 import org.example.ecommerce.auth.utils.TestJwtKeys;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,6 +70,12 @@ class AuthControllerIntegrationTests {
 
     @Autowired
     private UserCredentialRepository credentialRepository;
+
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
+
+    @Autowired
+    private TokenIssuer tokenIssuer;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -131,6 +140,10 @@ class AuthControllerIntegrationTests {
         assertThat(savedCredential.getRole()).isEqualTo(Role.USER);
         assertThat(savedCredential.getActive()).isTrue();
         assertThat(passwordEncoder.matches("password123", savedCredential.getPasswordHash())).isTrue();
+
+        assertThat(refreshTokenRepository.findAll())
+            .hasSize(1)
+            .allMatch(token -> !token.isRevoked());
     }
 
     @Test
@@ -182,6 +195,10 @@ class AuthControllerIntegrationTests {
         assertThat(refreshClaims.subject()).isEqualTo("alex.user");
         assertThat(refreshClaims.role()).isEqualTo(Role.USER);
         assertThat(refreshClaims.tokenType()).isEqualTo(JwtType.REFRESH);
+
+        assertThat(refreshTokenRepository.findAll())
+            .hasSize(1)
+            .allMatch(token -> !token.isRevoked());
     }
 
     @Test
@@ -210,8 +227,11 @@ class AuthControllerIntegrationTests {
 
     @Test
     void refreshShouldReturnTokensForActiveCredential() throws Exception {
-        String refreshToken = jwtService.generateRefreshToken(101L, "alex.user", Role.USER);
-        RefreshTokenRequest request = new RefreshTokenRequest(refreshToken);
+        UserCredential credential = credentialRepository.findByUserId(101L)
+            .orElseThrow();
+
+        TokenResponse issued = tokenIssuer.issue(credential);
+        RefreshTokenRequest request = new RefreshTokenRequest(issued.refreshToken());
 
         String content = mockMvc.perform(post("/api/v1/auth/refresh")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -225,17 +245,33 @@ class AuthControllerIntegrationTests {
 
         TokenResponse response = objectMapper.readValue(content, TokenResponse.class);
         JwtClaims accessClaims = jwtService.parse(response.accessToken());
+        JwtClaims refreshClaims = jwtService.parseRefreshToken(response.refreshToken());
+
+        assertThat(response.refreshToken()).isNotEqualTo(issued.refreshToken());
 
         assertThat(accessClaims.userId()).isEqualTo(101L);
         assertThat(accessClaims.subject()).isEqualTo("alex.user");
         assertThat(accessClaims.role()).isEqualTo(Role.USER);
         assertThat(accessClaims.tokenType()).isEqualTo(JwtType.ACCESS);
+
+        assertThat(refreshClaims.userId()).isEqualTo(101L);
+        assertThat(refreshClaims.subject()).isEqualTo("alex.user");
+        assertThat(refreshClaims.role()).isEqualTo(Role.USER);
+        assertThat(refreshClaims.tokenType()).isEqualTo(JwtType.REFRESH);
+
+        assertThat(refreshTokenRepository.findAll())
+            .hasSize(2)
+            .anyMatch(RefreshToken::isRevoked)
+            .anyMatch(token -> !token.isRevoked());
     }
 
     @Test
     void refreshShouldReturnForbiddenWhenCredentialIsInactive() throws Exception {
-        String refreshToken = jwtService.generateRefreshToken(102L, "inactive.user", Role.USER);
-        RefreshTokenRequest request = new RefreshTokenRequest(refreshToken);
+        UserCredential credential = credentialRepository.findByUserId(102L)
+            .orElseThrow();
+
+        TokenResponse issued = tokenIssuer.issue(credential);
+        RefreshTokenRequest request = new RefreshTokenRequest(issued.refreshToken());
 
         mockMvc.perform(post("/api/v1/auth/refresh")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -243,6 +279,44 @@ class AuthControllerIntegrationTests {
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.title").value("Credential inactive"))
             .andExpect(jsonPath("$.detail").value("Credential is inactive"));
+    }
+
+    @Test
+    void logoutShouldReturnNoContentAndRevokeRefreshToken() throws Exception {
+        UserCredential credential = credentialRepository.findByUserId(101L)
+            .orElseThrow();
+
+        TokenResponse issued = tokenIssuer.issue(credential);
+        RefreshTokenRequest request = new RefreshTokenRequest(issued.refreshToken());
+
+        mockMvc.perform(post("/api/v1/auth/logout")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isNoContent());
+
+        assertThat(refreshTokenRepository.findAll())
+            .hasSize(1)
+            .allMatch(RefreshToken::isRevoked);
+    }
+
+    @Test
+    void logoutShouldRevokeRefreshTokenAndPreventFurtherRefresh() throws Exception {
+        UserCredential credential = credentialRepository.findByUserId(101L)
+            .orElseThrow();
+
+        TokenResponse issued = tokenIssuer.issue(credential);
+        RefreshTokenRequest request = new RefreshTokenRequest(issued.refreshToken());
+
+        mockMvc.perform(post("/api/v1/auth/logout")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.title").value("Invalid token"));
     }
 
     @Test
@@ -267,6 +341,28 @@ class AuthControllerIntegrationTests {
         mockMvc.perform(post("/api/v1/auth/validate")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.valid").value(false))
+            .andExpect(jsonPath("$.userId").isEmpty())
+            .andExpect(jsonPath("$.role").isEmpty())
+            .andExpect(jsonPath("$.tokenType").isEmpty());
+    }
+
+    @Test
+    void validateShouldReturnInvalidResponseForRevokedRefreshToken() throws Exception {
+        UserCredential credential = credentialRepository.findByUserId(101L)
+            .orElseThrow();
+
+        TokenResponse issued = tokenIssuer.issue(credential);
+
+        mockMvc.perform(post("/api/v1/auth/logout")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new RefreshTokenRequest(issued.refreshToken()))))
+            .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/v1/auth/validate")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new ValidateTokenRequest(issued.refreshToken()))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.valid").value(false))
             .andExpect(jsonPath("$.userId").isEmpty())

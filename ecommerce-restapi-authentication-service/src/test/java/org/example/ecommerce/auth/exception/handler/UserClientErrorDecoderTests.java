@@ -29,7 +29,7 @@ class UserClientErrorDecoderTests {
     }
 
     @Test
-    void decodeShouldReturnUserAlreadyExistsExceptionWithProblemDetailMessage() {
+    void decodeShouldReturnUserAlreadyExistsExceptionWithProblemDetailMessage() throws Exception {
         ProblemDetail body = ProblemDetail.forStatusAndDetail(
             HttpStatus.CONFLICT,
             "User with email already exists"
@@ -37,7 +37,7 @@ class UserClientErrorDecoderTests {
 
         Exception actual = decoder.decode(
             "UserClient#create",
-            response(409, objectMapper.writeValueAsString(body))
+            response(HttpStatus.CONFLICT.value(), objectMapper.writeValueAsString(body))
         );
 
         assertInstanceOf(UserAlreadyExistsException.class, actual);
@@ -48,7 +48,7 @@ class UserClientErrorDecoderTests {
     void decodeShouldReturnDefaultDetailWhenBodyIsNull() {
         Exception actual = decoder.decode(
             "UserClient#create",
-            response(409, null)
+            response(HttpStatus.CONFLICT.value(), null)
         );
 
         assertInstanceOf(UserAlreadyExistsException.class, actual);
@@ -59,7 +59,7 @@ class UserClientErrorDecoderTests {
     void decodeShouldReturnDefaultDetailWhenBodyIsBlank() {
         Exception actual = decoder.decode(
             "UserClient#create",
-            response(409, "   ")
+            response(HttpStatus.CONFLICT.value(), "   ")
         );
 
         assertInstanceOf(UserAlreadyExistsException.class, actual);
@@ -67,10 +67,32 @@ class UserClientErrorDecoderTests {
     }
 
     @Test
+    void decodeShouldReturnServiceUnavailableExceptionFor502() {
+        Exception actual = decoder.decode(
+            "UserClient#create",
+            response(HttpStatus.BAD_GATEWAY.value(), null)
+        );
+
+        assertInstanceOf(DownstreamServiceUnavailableException.class, actual);
+        assertEquals("User service is temporarily unavailable", actual.getMessage());
+    }
+
+    @Test
     void decodeShouldReturnServiceUnavailableExceptionFor503() {
         Exception actual = decoder.decode(
             "UserClient#create",
-            response(503, null)
+            response(HttpStatus.SERVICE_UNAVAILABLE.value(), null)
+        );
+
+        assertInstanceOf(DownstreamServiceUnavailableException.class, actual);
+        assertEquals("User service is temporarily unavailable", actual.getMessage());
+    }
+
+    @Test
+    void decodeShouldReturnServiceUnavailableExceptionFor504() {
+        Exception actual = decoder.decode(
+            "UserClient#create",
+            response(HttpStatus.GATEWAY_TIMEOUT.value(), null)
         );
 
         assertInstanceOf(DownstreamServiceUnavailableException.class, actual);
@@ -81,7 +103,7 @@ class UserClientErrorDecoderTests {
     void decodeShouldDelegateToDefaultDecoderForUnexpectedStatus() {
         Exception actual = decoder.decode(
             "UserClient#create",
-            response(500, null)
+            response(HttpStatus.INTERNAL_SERVER_ERROR.value(), null)
         );
 
         assertInstanceOf(FeignException.class, actual);

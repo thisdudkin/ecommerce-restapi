@@ -5,6 +5,7 @@ import feign.Util;
 import feign.codec.ErrorDecoder;
 import org.example.ecommerce.auth.exception.custom.DownstreamServiceUnavailableException;
 import org.example.ecommerce.auth.exception.custom.UserAlreadyExistsException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import tools.jackson.databind.ObjectMapper;
 
@@ -24,14 +25,21 @@ public class UserClientErrorDecoder implements ErrorDecoder {
 
     @Override
     public Exception decode(String methodKey, Response response) {
-        return switch (response.status()) {
-            case 409 -> new UserAlreadyExistsException(
+        HttpStatus status = HttpStatus.resolve(response.status());
+
+        if (status == null) {
+            return defaultDecoder.decode(methodKey, response);
+        }
+
+        return switch (status) {
+            case CONFLICT -> new UserAlreadyExistsException(
                 USER_ALREADY_EXISTS,
                 readDetail(response)
             );
-            case 502, 503, 504 -> new DownstreamServiceUnavailableException(
-                "User service is temporarily unavailable"
-            );
+            case BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT ->
+                new DownstreamServiceUnavailableException(
+                    "User service is temporarily unavailable"
+                );
             default -> defaultDecoder.decode(methodKey, response);
         };
     }

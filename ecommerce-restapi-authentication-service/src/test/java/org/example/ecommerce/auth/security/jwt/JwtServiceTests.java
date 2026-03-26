@@ -62,8 +62,24 @@ class JwtServiceTests {
     }
 
     @Test
-    void generateInternalServiceTokenShouldCreateParsableInternalToken() {
-        String token = jwtService.generateInternalServiceToken("authentication-service");
+    void generateRefreshTokenShouldProduceDifferentTokensForSameUser() {
+        String first = jwtService.generateRefreshToken(101L, "alex.user", Role.USER);
+        String second = jwtService.generateRefreshToken(101L, "alex.user", Role.USER);
+
+        assertThat(first).isNotEqualTo(second);
+
+        JwtClaims firstClaims = jwtService.parseRefreshToken(first);
+        JwtClaims secondClaims = jwtService.parseRefreshToken(second);
+
+        assertThat(firstClaims.userId()).isEqualTo(101L);
+        assertThat(secondClaims.userId()).isEqualTo(101L);
+        assertThat(firstClaims.tokenType()).isEqualTo(JwtType.REFRESH);
+        assertThat(secondClaims.tokenType()).isEqualTo(JwtType.REFRESH);
+    }
+
+    @Test
+    void generateInternalTokenShouldCreateParsableInternalToken() {
+        String token = jwtService.generateInternalToken("authentication-service");
 
         JwtClaims claims = jwtService.parseInternalToken(token);
 

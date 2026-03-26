@@ -17,7 +17,7 @@ public class InternalServiceTokenProvider {
     }
 
     public String getToken() {
-        return jwtService.generateInternalServiceToken(serviceName);
+        return jwtService.generateInternalToken(serviceName);
     }
 
 }

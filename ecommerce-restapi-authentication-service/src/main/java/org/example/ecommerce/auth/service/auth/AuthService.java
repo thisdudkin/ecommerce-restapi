@@ -13,6 +13,7 @@ import org.example.ecommerce.auth.exception.custom.CredentialAlreadyExistsExcept
 import org.example.ecommerce.auth.exception.custom.CredentialNotFoundException;
 import org.example.ecommerce.auth.exception.custom.InactiveUserCredentialException;
 import org.example.ecommerce.auth.repository.UserCredentialRepository;
+import org.example.ecommerce.auth.security.enums.JwtType;
 import org.example.ecommerce.auth.security.enums.Role;
 import org.example.ecommerce.auth.security.exception.InvalidJwtException;
 import org.example.ecommerce.auth.security.exception.InvalidRefreshTokenException;
@@ -40,6 +41,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final UserCredentialRepository credentialRepository;
     private final RegistrationCompensationService registrationCompensationService;
+    private final RefreshTokenService refreshTokenService;
 
     public AuthService(UserClient userClient,
                        JwtService jwtService,
@@ -47,7 +49,8 @@ public class AuthService {
                        PasswordEncoder passwordEncoder,
                        AuthenticationManager authenticationManager,
                        UserCredentialRepository credentialRepository,
-                       RegistrationCompensationService registrationCompensationService) {
+                       RegistrationCompensationService registrationCompensationService,
+                       RefreshTokenService refreshTokenService) {
         this.userClient = userClient;
         this.jwtService = jwtService;
         this.tokenIssuer = tokenIssuer;
@@ -55,6 +58,7 @@ public class AuthService {
         this.credentialRepository = credentialRepository;
         this.authenticationManager = authenticationManager;
         this.registrationCompensationService = registrationCompensationService;
+        this.refreshTokenService = refreshTokenService;
     }
 
     @Transactional
@@ -88,7 +92,7 @@ public class AuthService {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public TokenResponse login(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(request.login(), request.password())
@@ -98,9 +102,10 @@ public class AuthService {
         return tokenIssuer.issue(principal);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public TokenResponse refresh(RefreshTokenRequest request) {
         JwtClaims claims = jwtService.parseRefreshToken(request.refreshToken());
+        refreshTokenService.validate(claims.userId(), request.refreshToken());
 
         UserCredential credential = credentialRepository.findByUserId(claims.userId())
             .orElseThrow(() -> new CredentialNotFoundException(
@@ -110,13 +115,24 @@ public class AuthService {
         if (!credential.getActive())
             throw new InactiveUserCredentialException("Credential with user id '%s' is inactive".formatted(claims.userId()));
 
+        refreshTokenService.revoke(request.refreshToken());
         return tokenIssuer.issue(credential);
+    }
+
+    @Transactional
+    public void logout(RefreshTokenRequest request) {
+        JwtClaims claims = jwtService.parseRefreshToken(request.refreshToken());
+        refreshTokenService.validate(claims.userId(), request.refreshToken());
+        refreshTokenService.revoke(request.refreshToken());
     }
 
     @Transactional(readOnly = true)
     public ValidateTokenResponse validate(ValidateTokenRequest request) {
         try {
             JwtClaims claims = jwtService.parse(request.token());
+
+            if (claims.tokenType() == JwtType.REFRESH && !refreshTokenService.isActive(request.token()))
+                return ValidateTokenResponse.invalid();
 
             return credentialRepository.findByUserId(claims.userId())
                 .filter(UserCredential::getActive)

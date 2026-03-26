@@ -2,6 +2,7 @@ package org.example.ecommerce.auth.security.jwt;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import org.example.ecommerce.auth.security.config.JwtProperties;
@@ -14,6 +15,8 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.time.Instant;
 import java.util.Date;
+import java.util.UUID;
+import java.util.function.UnaryOperator;
 
 @Service
 public class JwtService {
@@ -30,38 +33,35 @@ public class JwtService {
 
     public String generateAccessToken(Long userId, String login, Role role) {
         return generateToken(
-            userId,
             login,
-            role,
             JwtType.ACCESS,
-            jwtProperties.accessExpiration()
+            jwtProperties.accessExpiration(),
+            builder -> builder
+                .claim(JwtClaimNames.USER_ID, userId)
+                .claim(JwtClaimNames.ROLE, role.name())
         );
     }
 
     public String generateRefreshToken(Long userId, String login, Role role) {
         return generateToken(
-            userId,
             login,
-            role,
             JwtType.REFRESH,
-            jwtProperties.refreshExpiration()
+            jwtProperties.refreshExpiration(),
+            builder -> builder
+                .claim(JwtClaimNames.USER_ID, userId)
+                .claim(JwtClaimNames.ROLE, role.name())
         );
     }
 
-    public String generateInternalServiceToken(String serviceName) {
-        Instant now = Instant.now();
-        Instant expiresAt = now.plusSeconds(jwtProperties.accessExpiration());
-
-        return Jwts.builder()
-            .subject(serviceName)
-            .issuer(jwtProperties.issuer())
-            .issuedAt(Date.from(now))
-            .expiration(Date.from(expiresAt))
-            .claim(JwtClaimNames.TYPE, JwtType.INTERNAL.name())
-            .claim(JwtClaimNames.INTERNAL, true)
-            .claim(JwtClaimNames.SERVICE_NAME, serviceName)
-            .signWith(privateKey, Jwts.SIG.RS256)
-            .compact();
+    public String generateInternalToken(String serviceName) {
+        return generateToken(
+            serviceName,
+            JwtType.INTERNAL,
+            jwtProperties.accessExpiration(),
+            builder -> builder
+                .claim(JwtClaimNames.INTERNAL, true)
+                .claim(JwtClaimNames.SERVICE_NAME, serviceName)
+        );
     }
 
     public JwtClaims parse(String token) {
@@ -107,22 +107,22 @@ public class JwtService {
         return claims;
     }
 
-    private String generateToken(Long userId,
-                                 String login,
-                                 Role role,
+    private String generateToken(String subject,
                                  JwtType tokenType,
-                                 long expirationSeconds) {
+                                 long expirationSeconds,
+                                 UnaryOperator<JwtBuilder> customizer) {
         Instant now = Instant.now();
         Instant expiresAt = now.plusSeconds(expirationSeconds);
 
-        return Jwts.builder()
-            .subject(login)
+        JwtBuilder builder = Jwts.builder()
+            .id(UUID.randomUUID().toString())
+            .subject(subject)
             .issuer(jwtProperties.issuer())
             .issuedAt(Date.from(now))
             .expiration(Date.from(expiresAt))
-            .claim(JwtClaimNames.USER_ID, userId)
-            .claim(JwtClaimNames.ROLE, role.name())
-            .claim(JwtClaimNames.TYPE, tokenType.name())
+            .claim(JwtClaimNames.TYPE, tokenType.name());
+
+        return customizer.apply(builder)
             .signWith(privateKey, Jwts.SIG.RS256)
             .compact();
     }

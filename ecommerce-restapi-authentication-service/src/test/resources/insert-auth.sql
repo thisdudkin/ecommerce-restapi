@@ -1,6 +1,7 @@
 BEGIN;
 
 TRUNCATE TABLE registration_compensation_outbox RESTART IDENTITY CASCADE;
+TRUNCATE TABLE refresh_tokens RESTART IDENTITY CASCADE;
 TRUNCATE TABLE user_credentials RESTART IDENTITY CASCADE;
 
 INSERT INTO user_credentials (user_id,

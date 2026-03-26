@@ -6,6 +6,7 @@ import org.example.ecommerce.auth.security.config.JwtProperties;
 import org.example.ecommerce.auth.security.enums.Role;
 import org.example.ecommerce.auth.security.jwt.JwtService;
 import org.example.ecommerce.auth.security.principal.AuthUserDetails;
+import org.example.ecommerce.auth.service.auth.RefreshTokenService;
 import org.example.ecommerce.auth.service.auth.TokenIssuer;
 import org.example.ecommerce.auth.utils.TestDataGenerator;
 import org.example.ecommerce.auth.utils.TestJwtKeys;
@@ -25,6 +26,9 @@ class TokenIssuerTests {
     @Mock
     private JwtService jwtService;
 
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
     private TokenIssuer tokenIssuer;
 
     @BeforeEach
@@ -37,7 +41,8 @@ class TokenIssuerTests {
                 900L,
                 2_592_000L,
                 "authentication-service"
-            )
+            ),
+            refreshTokenService
         );
     }
 

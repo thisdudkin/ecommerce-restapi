@@ -21,12 +21,12 @@ class InternalServiceTokenProviderTests {
         InternalServiceTokenProvider provider =
             new InternalServiceTokenProvider(jwtService, "authentication-service");
 
-        when(jwtService.generateInternalServiceToken("authentication-service"))
+        when(jwtService.generateInternalToken("authentication-service"))
             .thenReturn("internal-token");
 
         String actual = provider.getToken();
 
         assertEquals("internal-token", actual);
-        verify(jwtService).generateInternalServiceToken("authentication-service");
+        verify(jwtService).generateInternalToken("authentication-service");
     }
 }

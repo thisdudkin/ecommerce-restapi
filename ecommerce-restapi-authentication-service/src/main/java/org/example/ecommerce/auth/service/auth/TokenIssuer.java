@@ -8,15 +8,19 @@ import org.example.ecommerce.auth.security.jwt.JwtService;
 import org.example.ecommerce.auth.security.principal.AuthUserDetails;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+
 @Service
 public class TokenIssuer {
 
     private final JwtService jwtService;
     private final JwtProperties jwtProperties;
+    private final RefreshTokenService refreshTokenService;
 
-    public TokenIssuer(JwtService jwtService, JwtProperties jwtProperties) {
+    public TokenIssuer(JwtService jwtService, JwtProperties jwtProperties, RefreshTokenService refreshTokenService) {
         this.jwtService = jwtService;
         this.jwtProperties = jwtProperties;
+        this.refreshTokenService = refreshTokenService;
     }
 
     public TokenResponse issue(UserCredential credential) {
@@ -36,17 +40,10 @@ public class TokenIssuer {
     }
 
     private TokenResponse issue(Long userId, String login, Role role) {
-        String accessToken = jwtService.generateAccessToken(
-            userId,
-            login,
-            role
-        );
+        String accessToken = jwtService.generateAccessToken(userId, login, role);
+        String refreshToken = jwtService.generateRefreshToken(userId, login, role);
 
-        String refreshToken = jwtService.generateRefreshToken(
-            userId,
-            login,
-            role
-        );
+        refreshTokenService.store(userId, refreshToken, Instant.now().plusSeconds(jwtProperties.refreshExpiration()));
 
         return new TokenResponse(
             accessToken,

@@ -64,6 +64,9 @@ class AuthServiceTests {
     @Mock
     private RegistrationCompensationService registrationCompensationService;
 
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
     @InjectMocks
     private AuthService authService;
 
@@ -212,6 +215,8 @@ class AuthServiceTests {
         verify(jwtService).parseRefreshToken("refresh-token");
         verify(credentialRepository).findByUserId(101L);
         verify(tokenIssuer).issue(credential);
+        verify(refreshTokenService).validate(101L, "refresh-token");
+        verify(refreshTokenService).revoke("refresh-token");
     }
 
     @Test
@@ -321,6 +326,29 @@ class AuthServiceTests {
 
         verify(jwtService).parse("broken-token");
         verify(credentialRepository, never()).findByUserId(anyLong());
+    }
+
+    @Test
+    void logoutShouldValidateAndRevokeRefreshToken() {
+        RefreshTokenRequest request = new RefreshTokenRequest("refresh-token");
+        JwtClaims claims = new JwtClaims(
+            101L,
+            "alex.user",
+            Role.USER,
+            JwtType.REFRESH,
+            null,
+            null,
+            Instant.now(),
+            Instant.now().plusSeconds(60)
+        );
+
+        when(jwtService.parseRefreshToken("refresh-token")).thenReturn(claims);
+
+        authService.logout(request);
+
+        verify(jwtService).parseRefreshToken("refresh-token");
+        verify(refreshTokenService).validate(101L, "refresh-token");
+        verify(refreshTokenService).revoke("refresh-token");
     }
 
 }

@@ -22,6 +22,8 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -193,6 +195,30 @@ class AuthControllerTests {
                 .content("{\"refreshToken\":"))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.title").value("Malformed request body"));
+    }
+
+    @Test
+    void logoutShouldReturnNoContent() throws Exception {
+        RefreshTokenRequest request = new RefreshTokenRequest("refresh-token");
+
+        mockMvc.perform(post("/api/v1/auth/logout")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void logoutShouldReturnUnauthorizedWhenTokenIsInvalid() throws Exception {
+        RefreshTokenRequest request = new RefreshTokenRequest("broken-token");
+
+        doThrow(new InvalidJwtException("JWT token is invalid"))
+            .when(authService).logout(any(RefreshTokenRequest.class));
+
+        mockMvc.perform(post("/api/v1/auth/logout")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.title").value("Invalid token"));
     }
 
     private RegisterRequest validRegisterRequest() {
