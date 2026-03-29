@@ -5,8 +5,24 @@ services:
     environment:
       SERVER_PORT: 8081
       USERS_DB_PASSWORD: ${USERS_DB_PASSWORD}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
     ports:
       - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  authentication-service:
+    image: uglyraddan/ecommerce-restapi-authentication-service
+    container_name: authentication-service
+    environment:
+      SERVER_PORT: 8082
+      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      USER_SERVICE_BASE_URL: ${USER_SERVICE_BASE_URL}
+    ports:
+      - "8082:8082"
     depends_on:
       postgres:
         condition: service_healthy

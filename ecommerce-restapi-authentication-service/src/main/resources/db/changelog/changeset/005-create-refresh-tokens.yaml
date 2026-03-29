@@ -1,0 +1,64 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005
+      author: Alexander Dudkin
+      changes:
+        - createTable:
+            tableName: refresh_tokens
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: token_hash
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: expires_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: revoked
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITHOUT TIMEZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITHOUT TIMEZONE
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            baseTableName: refresh_tokens
+            baseColumnNames: user_id
+            referencedTableName: user_credentials
+            referencedColumnNames: user_id
+            constraintName: refresh_tokens_user_id_fkey
+            onDelete: CASCADE
+
+        - createIndex:
+            tableName: refresh_tokens
+            indexName: refresh_tokens_user_id_revoked_expires_at_idx
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: revoked
+              - column:
+                  name: expires_at

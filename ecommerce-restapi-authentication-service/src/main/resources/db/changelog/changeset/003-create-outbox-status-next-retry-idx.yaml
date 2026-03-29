@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003
+      author: Alexander Dudkin
+      changes:
+        - createIndex:
+            tableName: registration_compensation_outbox
+            indexName: idx_registration_compensation_outbox_status_next_retry
+            columns:
+              - column:
+                  name: status
+              - column:
+                  name: next_retry_at

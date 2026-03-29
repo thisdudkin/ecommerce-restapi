@@ -169,6 +169,7 @@ public class UserService {
             throw new UserAlreadyInactiveException(id);
 
         userRepository.updateActiveStatus(id, false);
+        cardRepository.deactivateAll(id);
     }
 
     private User getUserOrThrow(Long id) {

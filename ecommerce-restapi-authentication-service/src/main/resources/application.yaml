@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: authentication-service
+  datasource:
+    url: ${IDENTITY_DB:jdbc:postgresql://localhost:5432/identity_db}
+    username: ${IDENTITY_DB_USERNAME:authentication_service}
+    password: ${IDENTITY_DB_PASSWORD}
+  jpa:
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+        highlight_sql: false
+        use_sql_comments: false
+  liquibase:
+    enabled: true
+
+security:
+  jwt:
+    public-key:   ${JWT_PUBLIC_KEY}
+    private-key: ${JWT_PRIVATE_KEY}
+    access-expiration:  900
+    refresh-expiration: 2592000
+    issuer: authentication-service
+
+clients:
+  user-service:
+    base-url: ${USER_SERVICE_BASE_URL:http://localhost:8081}
+    connect-timeout: 3s
+    read-timeout: 5s
+
+registration:
+  compensation:
+    fixed-delay-ms: 30000
+
+decorator:
+  datasource:
+    enabled: off
+
+logging:
+  level:
+    org.hibernate.SQL: off
+    org.hibernate.orm.jdbc.bind: off
+    net.ttddyy.dsproxy.listener: off
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: ${IDENTITY_DB:jdbc:postgresql://postgres:5432/identity_db}
+    username: ${IDENTITY_DB_USERNAME:authentication_service}
+    password: ${IDENTITY_DB_PASSWORD}

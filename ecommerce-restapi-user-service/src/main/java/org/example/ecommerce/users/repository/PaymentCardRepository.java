@@ -39,4 +39,13 @@ public interface PaymentCardRepository extends JpaRepository<PaymentCard, Long>,
     @Query("UPDATE PaymentCard c SET c.active = :active WHERE c.id = :id")
     int updateActiveStatus(Long id, Boolean active);
 
+    @Modifying
+    @Query(value = """
+        UPDATE payments_cards
+        SET active = false
+        WHERE user_id = :userId
+          AND active = true
+        """, nativeQuery = true)
+    int deactivateAll(Long userId);
+
 }
