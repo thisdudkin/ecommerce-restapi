@@ -11,9 +11,9 @@ import org.example.ecommerce.users.dto.response.UserScrollResponse;
 import org.example.ecommerce.users.exception.custom.UserEmailAlreadyExistsException;
 import org.example.ecommerce.users.exception.custom.UserNotFoundException;
 import org.example.ecommerce.users.repository.enums.SortDirection;
-import org.example.ecommerce.users.security.config.SecurityConfig;
-import org.example.ecommerce.users.security.filter.JwtAuthenticationFilter;
-import org.example.ecommerce.users.security.jwt.AccessGuard;
+import org.example.ecommerce.users.security.GatewayHeadersAuthenticationFilter;
+import org.example.ecommerce.users.security.SecurityConfig;
+import org.example.ecommerce.users.security.AccessGuard;
 import org.example.ecommerce.users.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -59,7 +59,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
     value = UserController.class,
     excludeFilters = {
         @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class),
-        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthenticationFilter.class)
+        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = GatewayHeadersAuthenticationFilter.class)
     }
 )
 @Import(TestSecurityConfig.class)

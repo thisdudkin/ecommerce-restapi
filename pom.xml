@@ -20,6 +20,7 @@
         <module>ecommerce-restapi-user-service</module>
         <module>ecommerce-restapi-authentication-service</module>
         <module>ecommerce-restapi-order-service</module>
+        <module>ecommerce-restapi-api-gateway</module>
     </modules>
 
     <properties>

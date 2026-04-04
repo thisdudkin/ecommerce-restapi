@@ -33,6 +33,9 @@ public final class ProblemDetailsConstants {
     public static final String ACCESS_DENIED_TITLE = "Access denied";
     public static final String ACCESS_DENIED_DETAIL = "You do not have permission to access this resource";
 
+    public static final String INVALID_TOKEN_TITLE = "Invalid token";
+    public static final String INVALID_TOKEN_DETAIL = "JWT token is invalid or expired";
+
     public static final String INTERNAL_SERVER_ERROR_TITLE = "Internal server error";
     public static final String INTERNAL_SERVER_ERROR_DETAIL = "An unexpected error occurred";
 

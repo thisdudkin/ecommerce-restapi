@@ -2,7 +2,8 @@ spring:
   datasource:
     url: ${ORDERS_DB:jdbc:postgresql://localhost:5432/orders_db}
     username: ${ORDERS_DB_USERNAME:order_service}
-    password: ${ORDERS_DB_PASSWORD}
+    password: ${ORDERS_DB_PASSWORD:order_service_password}
+
   jpa:
     show-sql: false
     open-in-view: false
@@ -11,11 +12,14 @@ spring:
         format_sql: false
         highlight_sql: false
         use_sql_comments: false
+
   liquibase:
     enabled: true
+
   output:
     ansi:
       enabled: always
+
   cloud:
     openfeign:
       circuitbreaker:
@@ -48,11 +52,6 @@ clients:
     base-url: ${USER_SERVICE_BASE_URL:http://localhost:8081}
     connect-timeout: 2s
     read-timeout: 3s
-
-security:
-  jwt:
-    public-key: ${JWT_PUBLIC_KEY}
-    issuer: authentication-service
 
 decorator:
   datasource:

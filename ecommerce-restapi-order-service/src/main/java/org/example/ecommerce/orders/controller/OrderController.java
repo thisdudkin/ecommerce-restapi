@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import static org.example.ecommerce.orders.security.jwt.TokenConstants.USER_CLAIM_EXPRESSION;
+import static org.example.ecommerce.orders.security.TokenConstants.USER_CLAIM_EXPRESSION;
 
 @RestController
 @RequestMapping("/api/v1/orders")
