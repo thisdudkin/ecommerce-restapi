@@ -5,6 +5,7 @@ import org.example.ecommerce.orders.config.UserClientFeignConfig;
 import org.example.ecommerce.orders.dto.response.UserResponse;
 import org.example.ecommerce.orders.exception.custom.feign.UserNotFoundException;
 import org.example.ecommerce.orders.exception.custom.feign.UserServiceUnavailableException;
+import org.example.ecommerce.orders.security.GatewayHeaderNames;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,6 @@ import org.wiremock.spring.EnableWireMock;
 import org.wiremock.spring.InjectWireMock;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
@@ -183,12 +183,16 @@ class UserClientIntegrationTests {
     @Test
     void getByIdShouldForwardAuthorizationHeader() {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer test-token");
+        request.addHeader(GatewayHeaderNames.AUTHENTICATED_USER_ID, "5");
+        request.addHeader(GatewayHeaderNames.AUTHENTICATED_USER_ROLE, "USER");
+        request.addHeader(GatewayHeaderNames.AUTHENTICATED_TOKEN_TYPE, GatewayHeaderNames.ACCESS_TOKEN_TYPE);
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
         wireMockServer.stubFor(
             get(urlPathEqualTo("/api/v1/users/5"))
-                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer test-token"))
+                .withHeader(GatewayHeaderNames.AUTHENTICATED_USER_ID, equalTo("5"))
+                .withHeader(GatewayHeaderNames.AUTHENTICATED_USER_ROLE, equalTo("USER"))
+                .withHeader(GatewayHeaderNames.AUTHENTICATED_TOKEN_TYPE, equalTo(GatewayHeaderNames.ACCESS_TOKEN_TYPE))
                 .willReturn(aResponse()
                     .withStatus(HttpStatus.OK.value())
                     .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -211,7 +215,9 @@ class UserClientIntegrationTests {
         wireMockServer.verify(
             1,
             getRequestedFor(urlPathEqualTo("/api/v1/users/5"))
-                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer test-token"))
+                .withHeader(GatewayHeaderNames.AUTHENTICATED_USER_ID, equalTo("5"))
+                .withHeader(GatewayHeaderNames.AUTHENTICATED_USER_ROLE, equalTo("USER"))
+                .withHeader(GatewayHeaderNames.AUTHENTICATED_TOKEN_TYPE, equalTo(GatewayHeaderNames.ACCESS_TOKEN_TYPE))
         );
     }
 

@@ -5,9 +5,9 @@ import org.example.ecommerce.users.dto.request.PaymentCardRequest;
 import org.example.ecommerce.users.dto.response.PaymentCardResponse;
 import org.example.ecommerce.users.exception.custom.PaymentCardNotFoundException;
 import org.example.ecommerce.users.exception.custom.PaymentCardNumberAlreadyExistsException;
-import org.example.ecommerce.users.security.config.SecurityConfig;
-import org.example.ecommerce.users.security.filter.JwtAuthenticationFilter;
-import org.example.ecommerce.users.security.jwt.AccessGuard;
+import org.example.ecommerce.users.security.GatewayHeadersAuthenticationFilter;
+import org.example.ecommerce.users.security.SecurityConfig;
+import org.example.ecommerce.users.security.AccessGuard;
 import org.example.ecommerce.users.service.PaymentCardService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,7 +46,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
     value = PaymentCardController.class,
     excludeFilters = {
         @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class),
-        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthenticationFilter.class)
+        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = GatewayHeadersAuthenticationFilter.class)
     }
 )
 @Import(TestSecurityConfig.class)

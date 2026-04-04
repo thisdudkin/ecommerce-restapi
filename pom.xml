@@ -20,6 +20,7 @@
         <module>ecommerce-restapi-user-service</module>
         <module>ecommerce-restapi-authentication-service</module>
         <module>ecommerce-restapi-order-service</module>
+        <module>ecommerce-restapi-api-gateway</module>
     </modules>
 
     <properties>
@@ -50,7 +51,10 @@
             **/entity/**,
             **/enums/**,
             **/exception/**,
-            **/security/**
+            **/security/**,
+
+            **/org/example/ecommerce/gateway/**/model/**,
+            **/org/example/ecommerce/gateway/shared/**
         </sonar.coverage.exclusions>
 
         <!-- Docker -->
@@ -151,7 +155,8 @@
                                     <rules>
                                         <requireJavaVersion>
                                             <message>
-                                                🚫 Java version error: This project requires Java ${java.version} or higher.
+                                                🚫 Java version error: This project requires Java ${java.version} or
+                                                higher.
 
                                                 Your current Java version is ${java.version}
                                                 To fix this:
@@ -252,6 +257,8 @@
                                         <exclude>**/enums/**</exclude>
                                         <exclude>**/exception/**</exclude>
                                         <exclude>**/security/**</exclude>
+                                        <exclude>**/org/example/ecommerce/gateway/**/model/**</exclude>
+                                        <exclude>**/org/example/ecommerce/gateway/shared/**</exclude>
                                     </excludes>
                                 </configuration>
                             </execution>
@@ -271,6 +278,8 @@
                                         <exclude>**/enums/**</exclude>
                                         <exclude>**/exception/**</exclude>
                                         <exclude>**/security/**</exclude>
+                                        <exclude>**/org/example/ecommerce/gateway/**/model/**</exclude>
+                                        <exclude>**/org/example/ecommerce/gateway/shared/**</exclude>
                                     </excludes>
                                     <rules>
                                         <rule>
