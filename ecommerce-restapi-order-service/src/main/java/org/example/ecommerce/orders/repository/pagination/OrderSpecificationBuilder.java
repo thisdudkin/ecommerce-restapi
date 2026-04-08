@@ -14,9 +14,16 @@ import static org.example.ecommerce.orders.repository.OrderRepository.Specs.notD
 public class OrderSpecificationBuilder {
 
     public Specification<Order> buildMyOrders(Long userId, OrderScrollRequest request) {
+        return base(request).and(byUserId(userId));
+    }
+
+    public Specification<Order> buildAllOrders(OrderScrollRequest request) {
+        return base(request);
+    }
+
+    private Specification<Order> base(OrderScrollRequest request) {
         return Specification
             .where(notDeleted())
-            .and(byUserId(userId))
             .and(hasStatus(request))
             .and(createdAtFrom(request))
             .and(createdAtTo(request));

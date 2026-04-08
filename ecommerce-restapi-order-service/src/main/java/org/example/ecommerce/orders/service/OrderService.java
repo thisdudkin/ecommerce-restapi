@@ -27,6 +27,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 @Service
 public class OrderService {
@@ -73,12 +74,21 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public OrderPageResponse getMy(Long userId, OrderScrollRequest request) {
-        UserResponse user = userClient.getById(userId);
+        Specification<Order> specification = orderSpecificationBuilder.buildMyOrders(userId, request);
+        return getPage(request, specification, orderIds -> orderRepository.findPage(userId, orderIds));
+    }
 
+    @Transactional(readOnly = true)
+    public OrderPageResponse getAll(OrderScrollRequest request) {
+        Specification<Order> specification = orderSpecificationBuilder.buildAllOrders(request);
+        return getPage(request, specification, orderRepository::findPage);
+    }
+
+    private OrderPageResponse getPage(OrderScrollRequest request,
+                                      Specification<Order> specification,
+                                      Function<List<Long>, List<Order>> ordersFetcher) {
         int pageSize = normalizeSize(request.size());
         CursorPayload cursor = cursorService.decode(request.token());
-
-        Specification<Order> specification = orderSpecificationBuilder.buildMyOrders(userId, request);
 
         List<Long> pageIds = orderRepository.findPageIds(
             specification,
@@ -88,17 +98,21 @@ public class OrderService {
         );
 
         boolean hasNext = pageIds.size() > pageSize;
-        if (hasNext)
+        if (hasNext) {
             pageIds = pageIds.subList(0, pageSize);
+        }
 
-        if (pageIds.isEmpty())
+        if (pageIds.isEmpty()) {
             return OrderPageResponse.empty();
+        }
 
-        List<Order> orders = orderRepository.findPage(userId, pageIds);
+        List<Order> orders = ordersFetcher.apply(pageIds);
         sortOrders(orders, pageIds);
 
-        List<OrderResponse> orderResponses = orders.stream()
-            .map(order -> orderMapper.toResponse(order, user))
+        Map<Long, UserResponse> users = loadUsers(orders);
+
+        List<OrderResponse> responses = orders.stream()
+            .map(order -> orderMapper.toResponse(order, users.get(order.getUserId())))
             .toList();
 
         String nextToken = null;
@@ -109,7 +123,7 @@ public class OrderService {
             );
         }
 
-        return new OrderPageResponse(orderResponses, nextToken);
+        return new OrderPageResponse(responses, nextToken);
     }
 
     @Transactional
@@ -222,6 +236,16 @@ public class OrderService {
             positions.put(pageIds.get(i), i);
 
         orders.sort(Comparator.comparingInt(order -> positions.get(order.getId())));
+    }
+
+    private Map<Long, UserResponse> loadUsers(List<Order> orders) {
+        Map<Long, UserResponse> users = new HashMap<>();
+
+        for (Order order : orders) {
+            users.computeIfAbsent(order.getUserId(), userClient::getById);
+        }
+
+        return users;
     }
 
 }

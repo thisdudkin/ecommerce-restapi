@@ -26,7 +26,6 @@ import static org.example.ecommerce.orders.security.jwt.TokenConstants.USER_CLAI
 
 @RestController
 @RequestMapping("/api/v1/orders")
-@PreAuthorize("hasRole('USER')")
 public class OrderController {
 
     private final OrderService orderService;
@@ -36,6 +35,7 @@ public class OrderController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrderResponse> create(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
                                                 UriComponentsBuilder uriBuilder) {
         OrderResponse response = orderService.create(userId);
@@ -48,18 +48,27 @@ public class OrderController {
     }
 
     @GetMapping("/{orderId}")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrderResponse> get(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
                                              @PathVariable Long orderId) {
         return ResponseEntity.ok(orderService.get(userId, orderId));
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrderPageResponse> getMy(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
                                                    @Valid @ModelAttribute OrderScrollRequest request) {
         return ResponseEntity.ok(orderService.getMy(userId, request));
     }
 
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<OrderPageResponse> getAll(@Valid @ModelAttribute OrderScrollRequest request) {
+        return ResponseEntity.ok(orderService.getAll(request));
+    }
+
     @PostMapping("/{orderId}/items")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrderResponse> addItem(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
                                                  @PathVariable Long orderId,
                                                  @Valid @RequestBody OrderAddItemRequest request) {
@@ -67,6 +76,7 @@ public class OrderController {
     }
 
     @DeleteMapping("/{orderId}/items/{itemId}")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrderResponse> removeItem(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
                                                     @PathVariable Long orderId,
                                                     @PathVariable Long itemId) {
@@ -74,6 +84,7 @@ public class OrderController {
     }
 
     @PatchMapping("/{orderId}/items")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrderResponse> changeQuantity(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
                                                         @PathVariable Long orderId,
                                                         @Valid @RequestBody OrderChangeQuantityRequest request) {
@@ -81,6 +92,7 @@ public class OrderController {
     }
 
     @PatchMapping("/{orderId}/status")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrderResponse> updateStatus(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
                                                       @PathVariable Long orderId,
                                                       @Valid @RequestBody OrderStatusUpdateRequest request) {
@@ -88,6 +100,7 @@ public class OrderController {
     }
 
     @DeleteMapping("/{orderId}")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
                                        @PathVariable Long orderId) {
         orderService.delete(userId, orderId);
@@ -95,6 +108,7 @@ public class OrderController {
     }
 
     @PostMapping("/{orderId}/restore")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrderResponse> restore(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
                                                  @PathVariable Long orderId) {
         return ResponseEntity.ok(orderService.restore(userId, orderId));

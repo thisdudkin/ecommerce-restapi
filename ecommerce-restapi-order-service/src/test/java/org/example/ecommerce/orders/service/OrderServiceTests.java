@@ -156,13 +156,10 @@ class OrderServiceTests {
     @SuppressWarnings("unchecked")
     void getMyShouldReturnEmptyPageWhenNoIdsFoundAndUseDefaultSize() {
         Long userId = id();
-        UserResponse user = userResponse(userId);
         OrderScrollRequest request = orderScrollRequest(null, null, null, null, null);
         CursorPayload cursor = new CursorPayload(null, null);
         Specification<Order> specification = mock(Specification.class);
 
-        when(userClient.getById(userId))
-            .thenReturn(user);
         when(cursorService.decode(null))
             .thenReturn(cursor);
         when(orderSpecificationBuilder.buildMyOrders(userId, request))
@@ -174,26 +171,22 @@ class OrderServiceTests {
 
         assertEquals(OrderPageResponse.empty(), actual);
 
-        verify(userClient).getById(userId);
         verify(cursorService).decode(null);
         verify(orderSpecificationBuilder).buildMyOrders(userId, request);
         verify(orderRepository).findPageIds(specification, null, null, 21);
         verify(orderRepository, never()).findPage(anyLong(), any());
         verify(cursorService, never()).encode(any());
-        verifyNoInteractions(orderMapper);
+        verifyNoInteractions(userClient, orderMapper);
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void getMyShouldCapPageSizeAtMax() {
         Long userId = id();
-        UserResponse user = userResponse(userId);
         OrderScrollRequest request = orderScrollRequest(999, null, null, null, "cursor");
         CursorPayload cursor = new CursorPayload(null, null);
         Specification<Order> specification = mock(Specification.class);
 
-        when(userClient.getById(userId))
-            .thenReturn(user);
         when(cursorService.decode("cursor"))
             .thenReturn(cursor);
         when(orderSpecificationBuilder.buildMyOrders(userId, request))
@@ -206,10 +199,11 @@ class OrderServiceTests {
         assertEquals(OrderPageResponse.empty(), actual);
 
         verify(cursorService).decode("cursor");
+        verify(orderSpecificationBuilder).buildMyOrders(userId, request);
         verify(orderRepository).findPageIds(specification, null, null, 51);
         verify(orderRepository, never()).findPage(anyLong(), any());
         verify(cursorService, never()).encode(any());
-        verifyNoInteractions(orderMapper);
+        verifyNoInteractions(userClient, orderMapper);
     }
 
     @Test
@@ -258,6 +252,67 @@ class OrderServiceTests {
         verify(orderMapper).toResponse(firstOrder, user);
         verify(orderMapper).toResponse(secondOrder, user);
         verify(cursorService).encode(new CursorPayload(secondOrder.getCreatedAt(), secondOrder.getId()));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void getAllShouldReturnEmptyPageWhenNoIdsFound() {
+        OrderScrollRequest request = orderScrollRequest(null, null, null, null, null);
+        CursorPayload cursor = new CursorPayload(null, null);
+        Specification<Order> specification = mock(Specification.class);
+
+        when(cursorService.decode(null)).thenReturn(cursor);
+        when(orderSpecificationBuilder.buildAllOrders(request)).thenReturn(specification);
+        when(orderRepository.findPageIds(specification, null, null, 21)).thenReturn(List.of());
+
+        OrderPageResponse actual = orderService.getAll(request);
+
+        assertEquals(OrderPageResponse.empty(), actual);
+
+        verify(orderSpecificationBuilder).buildAllOrders(request);
+        verify(orderRepository).findPageIds(specification, null, null, 21);
+        verify(orderRepository, never()).findPage(any());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void getAllShouldReturnSortedOrdersAndNextToken() {
+        Long firstUserId = 1L;
+        Long secondUserId = 2L;
+
+        OrderScrollRequest request = orderScrollRequest(2, null, null, null, "cursor-1");
+        CursorPayload cursor = new CursorPayload(datetime(), 77L);
+        Specification<Order> specification = mock(Specification.class);
+
+        Order firstOrder = order(101L, firstUserId);
+        Order secondOrder = order(102L, secondUserId);
+
+        UserResponse firstUser = userResponse(firstUserId);
+        UserResponse secondUser = userResponse(secondUserId);
+
+        OrderResponse firstResponse = orderResponse(firstOrder, firstUser);
+        OrderResponse secondResponse = orderResponse(secondOrder, secondUser);
+
+        when(cursorService.decode("cursor-1")).thenReturn(cursor);
+        when(orderSpecificationBuilder.buildAllOrders(request)).thenReturn(specification);
+        when(orderRepository.findPageIds(specification, cursor.createdAt(), cursor.id(), 3))
+            .thenReturn(List.of(101L, 102L, 999L));
+        when(orderRepository.findPage(List.of(101L, 102L)))
+            .thenReturn(new ArrayList<>(List.of(secondOrder, firstOrder)));
+
+        when(userClient.getById(firstUserId)).thenReturn(firstUser);
+        when(userClient.getById(secondUserId)).thenReturn(secondUser);
+
+        when(orderMapper.toResponse(firstOrder, firstUser)).thenReturn(firstResponse);
+        when(orderMapper.toResponse(secondOrder, secondUser)).thenReturn(secondResponse);
+
+        when(cursorService.encode(new CursorPayload(secondOrder.getCreatedAt(), secondOrder.getId())))
+            .thenReturn("next-token");
+
+        OrderPageResponse actual = orderService.getAll(request);
+
+        assertEquals(List.of(firstResponse, secondResponse), actual.orders());
+        assertEquals("next-token", actual.token());
     }
 
     @Test

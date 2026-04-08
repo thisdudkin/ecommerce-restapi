@@ -65,6 +65,16 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
         """)
     List<Order> findPage(Long userId, Iterable<Long> orderIds);
 
+    @Query("""
+        select distinct o
+          from Order o
+          left join fetch o.orderItems oi
+          left join fetch oi.item
+          where o.id in :orderIds
+          order by o.createdAt, o.id
+        """)
+    List<Order> findPage(Iterable<Long> orderIds);
+
     interface Specs {
 
         static Specification<Order> notDeleted() {

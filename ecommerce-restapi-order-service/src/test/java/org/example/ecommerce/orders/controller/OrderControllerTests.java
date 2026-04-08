@@ -162,6 +162,42 @@ class OrderControllerTests {
     }
 
     @Test
+    void getAllWhenAdminRoleReturnsOk() throws Exception {
+        OrderScrollRequest request = orderScrollRequest(2, NEW, null, null, null);
+
+        UserResponse user = userResponse(1L);
+        Order order = order(200L, 1L);
+        OrderPageResponse response = orderPageResponse(
+            List.of(orderResponse(order, user)),
+            "next-token"
+        );
+
+        when(orderService.getAll(eq(request)))
+            .thenReturn(response);
+
+        mockMvc.perform(
+                get("/api/v1/orders/all")
+                    .with(authentication(adminAuthentication()))
+                    .param("size", "2")
+                    .param("status", "NEW")
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.orders[0].id").value(200))
+            .andExpect(jsonPath("$.token").value("next-token"));
+
+        verify(orderService).getAll(request);
+    }
+
+    @Test
+    void getAllWhenUserRoleForbidden() throws Exception {
+        mockMvc.perform(
+                get("/api/v1/orders/all")
+                    .with(authentication(userAuthentication()))
+            )
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
     void addItemWhenUserRoleReturnsOk() throws Exception {
         long userId = 1L;
         OrderAddItemRequest request = orderAddItemRequest(100L, 2);
