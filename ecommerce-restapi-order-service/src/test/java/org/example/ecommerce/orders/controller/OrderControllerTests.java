@@ -3,6 +3,7 @@ package org.example.ecommerce.orders.controller;
 import org.example.ecommerce.orders.dto.request.OrderAddItemRequest;
 import org.example.ecommerce.orders.dto.request.OrderChangeQuantityRequest;
 import org.example.ecommerce.orders.dto.request.OrderScrollRequest;
+import org.example.ecommerce.orders.dto.request.OrderStatusUpdateRequest;
 import org.example.ecommerce.orders.dto.response.OrderPageResponse;
 import org.example.ecommerce.orders.dto.response.OrderResponse;
 import org.example.ecommerce.orders.dto.response.UserResponse;
@@ -29,7 +30,10 @@ import tools.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.util.List;
 
+import static org.example.ecommerce.orders.enums.OrderStatus.CANCELLED;
+import static org.example.ecommerce.orders.enums.OrderStatus.COMPLETED;
 import static org.example.ecommerce.orders.enums.OrderStatus.NEW;
+import static org.example.ecommerce.orders.enums.OrderStatus.PAID;
 import static org.example.ecommerce.orders.support.TestDataGenerator.item;
 import static org.example.ecommerce.orders.support.TestDataGenerator.order;
 import static org.example.ecommerce.orders.support.TestDataGenerator.orderAddItemRequest;
@@ -214,7 +218,7 @@ class OrderControllerTests {
     }
 
     @Test
-    void payWhenUserRoleReturnsOk() throws Exception {
+    void updateStatusToPaidWhenUserRoleReturnsOk() throws Exception {
         long userId = 1L;
         UserResponse user = userResponse(userId);
 
@@ -223,19 +227,76 @@ class OrderControllerTests {
         order.markPaid();
 
         OrderResponse response = orderResponse(order, user);
+        OrderStatusUpdateRequest request = new OrderStatusUpdateRequest(PAID);
 
-        when(orderService.pay(userId, 200L))
+        when(orderService.updateStatus(userId, 200L, PAID))
             .thenReturn(response);
 
         mockMvc.perform(
-                post("/api/v1/orders/200/pay")
+                patch("/api/v1/orders/200/status")
                     .with(authentication(userAuthentication()))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request))
             )
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("PAID"))
             .andExpect(jsonPath("$.totalPrice").value(20.00));
 
-        verify(orderService).pay(userId, 200L);
+        verify(orderService).updateStatus(userId, 200L, PAID);
+    }
+
+    @Test
+    void updateStatusToCompletedWhenUserRoleReturnsOk() throws Exception {
+        long userId = 1L;
+        UserResponse user = userResponse(userId);
+
+        Order order = order(200L, userId);
+        order.addItem(item(100L, "Keyboard", BigDecimal.valueOf(10.00)), 2);
+        order.markPaid();
+        order.complete();
+
+        OrderResponse response = orderResponse(order, user);
+        OrderStatusUpdateRequest request = new OrderStatusUpdateRequest(COMPLETED);
+
+        when(orderService.updateStatus(userId, 200L, COMPLETED))
+            .thenReturn(response);
+
+        mockMvc.perform(
+                patch("/api/v1/orders/200/status")
+                    .with(authentication(userAuthentication()))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request))
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("COMPLETED"));
+
+        verify(orderService).updateStatus(userId, 200L, COMPLETED);
+    }
+
+    @Test
+    void updateStatusToCancelledWhenUserRoleReturnsOk() throws Exception {
+        long userId = 1L;
+        UserResponse user = userResponse(userId);
+
+        Order order = order(200L, userId);
+        order.cancel();
+
+        OrderResponse response = orderResponse(order, user);
+        OrderStatusUpdateRequest request = new OrderStatusUpdateRequest(CANCELLED);
+
+        when(orderService.updateStatus(userId, 200L, CANCELLED))
+            .thenReturn(response);
+
+        mockMvc.perform(
+                patch("/api/v1/orders/200/status")
+                    .with(authentication(userAuthentication()))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request))
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("CANCELLED"));
+
+        verify(orderService).updateStatus(userId, 200L, CANCELLED);
     }
 
     @Test

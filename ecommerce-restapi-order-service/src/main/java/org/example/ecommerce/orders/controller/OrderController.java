@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import org.example.ecommerce.orders.dto.request.OrderAddItemRequest;
 import org.example.ecommerce.orders.dto.request.OrderChangeQuantityRequest;
 import org.example.ecommerce.orders.dto.request.OrderScrollRequest;
+import org.example.ecommerce.orders.dto.request.OrderStatusUpdateRequest;
 import org.example.ecommerce.orders.dto.response.OrderPageResponse;
 import org.example.ecommerce.orders.dto.response.OrderResponse;
 import org.example.ecommerce.orders.service.OrderService;
@@ -79,22 +80,11 @@ public class OrderController {
         return ResponseEntity.ok(orderService.changeQuantity(userId, orderId, request));
     }
 
-    @PostMapping("/{orderId}/pay")
-    public ResponseEntity<OrderResponse> pay(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
-                                             @PathVariable Long orderId) {
-        return ResponseEntity.ok(orderService.pay(userId, orderId));
-    }
-
-    @PostMapping("/{orderId}/complete")
-    public ResponseEntity<OrderResponse> complete(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
-                                                  @PathVariable Long orderId) {
-        return ResponseEntity.ok(orderService.complete(userId, orderId));
-    }
-
-    @PostMapping("/{orderId}/cancel")
-    public ResponseEntity<OrderResponse> cancel(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
-                                                @PathVariable Long orderId) {
-        return ResponseEntity.ok(orderService.cancel(userId, orderId));
+    @PatchMapping("/{orderId}/status")
+    public ResponseEntity<OrderResponse> updateStatus(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
+                                                      @PathVariable Long orderId,
+                                                      @Valid @RequestBody OrderStatusUpdateRequest request) {
+        return ResponseEntity.ok(orderService.updateStatus(userId, orderId, request.status()));
     }
 
     @DeleteMapping("/{orderId}")

@@ -10,10 +10,12 @@ import org.example.ecommerce.orders.dto.response.OrderResponse;
 import org.example.ecommerce.orders.dto.response.UserResponse;
 import org.example.ecommerce.orders.entity.Item;
 import org.example.ecommerce.orders.entity.Order;
+import org.example.ecommerce.orders.enums.OrderStatus;
 import org.example.ecommerce.orders.exception.custom.item.ItemNotFoundException;
 import org.example.ecommerce.orders.exception.custom.order.EmptyOrderException;
 import org.example.ecommerce.orders.exception.custom.order.OrderNotFoundException;
 import org.example.ecommerce.orders.exception.custom.order.OrderStateConflictException;
+import org.example.ecommerce.orders.exception.custom.order.OrderStatusInvalidException;
 import org.example.ecommerce.orders.mapper.OrderMapper;
 import org.example.ecommerce.orders.repository.ItemRepository;
 import org.example.ecommerce.orders.repository.OrderRepository;
@@ -416,7 +418,7 @@ class OrderServiceTests {
     }
 
     @Test
-    void payShouldMarkOrderPaidFlushAndReturnResponse() {
+    void updateStatusShouldMarkOrderPaidFlushAndReturnResponse() {
         Long userId = id();
         Long orderId = id();
 
@@ -432,7 +434,7 @@ class OrderServiceTests {
         when(orderMapper.toResponse(existingOrder, user))
             .thenReturn(expected);
 
-        OrderResponse actual = orderService.pay(userId, orderId);
+        OrderResponse actual = orderService.updateStatus(userId, orderId, OrderStatus.PAID);
 
         assertEquals(expected, actual);
         assertTrue(existingOrder.isPaid());
@@ -442,7 +444,7 @@ class OrderServiceTests {
     }
 
     @Test
-    void payShouldThrowWhenOrderIsEmpty() {
+    void updateStatusShouldThrowWhenPayingEmptyOrder() {
         Long userId = id();
         Long orderId = id();
 
@@ -456,7 +458,7 @@ class OrderServiceTests {
 
         assertThrows(
             EmptyOrderException.class,
-            () -> orderService.pay(userId, orderId)
+            () -> orderService.updateStatus(userId, orderId, OrderStatus.PAID)
         );
 
         verify(orderRepository, never()).flush();
@@ -464,7 +466,7 @@ class OrderServiceTests {
     }
 
     @Test
-    void completeShouldMarkPaidOrderCompletedFlushAndReturnResponse() {
+    void updateStatusShouldMarkPaidOrderCompletedFlushAndReturnResponse() {
         Long userId = id();
         Long orderId = id();
 
@@ -479,7 +481,7 @@ class OrderServiceTests {
         when(orderMapper.toResponse(existingOrder, user))
             .thenReturn(expected);
 
-        OrderResponse actual = orderService.complete(userId, orderId);
+        OrderResponse actual = orderService.updateStatus(userId, orderId, OrderStatus.COMPLETED);
 
         assertEquals(expected, actual);
         assertTrue(existingOrder.isCompleted());
@@ -489,7 +491,7 @@ class OrderServiceTests {
     }
 
     @Test
-    void cancelShouldMarkOrderCancelledFlushAndReturnResponse() {
+    void updateStatusShouldMarkOrderCancelledFlushAndReturnResponse() {
         Long userId = id();
         Long orderId = id();
 
@@ -504,13 +506,35 @@ class OrderServiceTests {
         when(orderMapper.toResponse(existingOrder, user))
             .thenReturn(expected);
 
-        OrderResponse actual = orderService.cancel(userId, orderId);
+        OrderResponse actual = orderService.updateStatus(userId, orderId, OrderStatus.CANCELLED);
 
         assertEquals(expected, actual);
         assertTrue(existingOrder.isCancelled());
 
         verify(orderRepository).flush();
         verify(orderMapper).toResponse(existingOrder, user);
+    }
+
+    @Test
+    void updateStatusShouldThrowWhenStatusIsNew() {
+        Long userId = id();
+        Long orderId = id();
+
+        UserResponse user = userResponse(userId);
+        Order existingOrder = order(orderId, userId);
+
+        when(userClient.getById(userId))
+            .thenReturn(user);
+        when(orderRepository.findDetailed(orderId, userId))
+            .thenReturn(Optional.of(existingOrder));
+
+        assertThrows(
+            OrderStatusInvalidException.class,
+            () -> orderService.updateStatus(userId, orderId, OrderStatus.NEW)
+        );
+
+        verify(orderRepository, never()).flush();
+        verifyNoInteractions(orderMapper);
     }
 
     @Test

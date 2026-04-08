@@ -10,9 +10,11 @@ import org.example.ecommerce.orders.dto.response.OrderResponse;
 import org.example.ecommerce.orders.dto.response.UserResponse;
 import org.example.ecommerce.orders.entity.Item;
 import org.example.ecommerce.orders.entity.Order;
+import org.example.ecommerce.orders.enums.OrderStatus;
 import org.example.ecommerce.orders.exception.custom.item.ItemNotFoundException;
 import org.example.ecommerce.orders.exception.custom.order.OrderNotFoundException;
 import org.example.ecommerce.orders.exception.custom.order.OrderStateConflictException;
+import org.example.ecommerce.orders.exception.custom.order.OrderStatusInvalidException;
 import org.example.ecommerce.orders.mapper.OrderMapper;
 import org.example.ecommerce.orders.repository.ItemRepository;
 import org.example.ecommerce.orders.repository.OrderRepository;
@@ -159,36 +161,18 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse pay(Long userId, Long orderId) {
+    public OrderResponse updateStatus(Long userId, Long orderId, OrderStatus status) {
         UserResponse user = userClient.getById(userId);
-
         Order order = getMyOrder(userId, orderId);
 
-        order.markPaid();
+        switch (status) {
+            case PAID -> order.markPaid();
+            case COMPLETED -> order.complete();
+            case CANCELLED -> order.cancel();
+            case NEW -> throw new OrderStatusInvalidException("Status NEW is not allowed for manual update");
+        }
+
         orderRepository.flush();
-
-        return orderMapper.toResponse(order, user);
-    }
-
-    @Transactional
-    public OrderResponse complete(Long userId, Long orderId) {
-        UserResponse user = userClient.getById(userId);
-
-        Order order = getMyOrder(userId, orderId);
-        order.complete();
-        orderRepository.flush();
-
-        return orderMapper.toResponse(order, user);
-    }
-
-    @Transactional
-    public OrderResponse cancel(Long userId, Long orderId) {
-        UserResponse user = userClient.getById(userId);
-
-        Order order = getMyOrder(userId, orderId);
-        order.cancel();
-        orderRepository.flush();
-
         return orderMapper.toResponse(order, user);
     }
 
