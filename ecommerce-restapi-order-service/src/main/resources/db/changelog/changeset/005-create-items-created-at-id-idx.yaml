@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005
+      author: Alexander Dudkin
+      changes:
+        - createIndex:
+            indexName: idx_items_created_at_id
+            tableName: items
+            columns:
+              - column:
+                  name: created_at
+              - column:
+                  name: id
+
+      rollback:
+        - dropIndex:
+            indexName: idx_items_created_at_id
+            tableName: items

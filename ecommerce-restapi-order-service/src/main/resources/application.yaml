@@ -1,0 +1,66 @@
+spring:
+  datasource:
+    url: ${ORDERS_DB:jdbc:postgresql://localhost:5432/orders_db}
+    username: ${ORDERS_DB_USERNAME:order_service}
+    password: ${ORDERS_DB_PASSWORD}
+  jpa:
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+        highlight_sql: false
+        use_sql_comments: false
+  liquibase:
+    enabled: true
+  output:
+    ansi:
+      enabled: always
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      user-service:
+        sliding-window-type: count_based
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - feign.RetryableException
+          - java.net.SocketTimeoutException
+          - java.util.concurrent.TimeoutException
+          - org.example.ecommerce.orders.exception.custom.feign.UserServiceUnavailableException
+        ignore-exceptions:
+          - org.example.ecommerce.orders.exception.custom.feign.UserNotFoundException
+
+pagination:
+  cursor-secret: ${CURSOR_SECRET}
+
+clients:
+  user-service:
+    base-url: ${USER_SERVICE_BASE_URL:http://localhost:8081}
+    connect-timeout: 2s
+    read-timeout: 3s
+
+security:
+  jwt:
+    public-key: ${JWT_PUBLIC_KEY}
+    issuer: authentication-service
+
+decorator:
+  datasource:
+    datasource-proxy:
+      multiline: true
+      format-sql: true
+
+logging:
+  level:
+    org.hibernate.orm.connections.pooling: warn
+    net.ttddyy.dsproxy.listener: debug

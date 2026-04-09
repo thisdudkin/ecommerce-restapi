@@ -1,0 +1,57 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003
+      author: Alexander Dudkin
+      changes:
+        - createTable:
+            tableName: order_items
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+
+              - column:
+                  name: order_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    referencedTableName: orders
+                    referencedColumnNames: id
+                    foreignKeyName: fk_order_items_order_id
+
+              - column:
+                  name: item_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    referencedTableName: items
+                    referencedColumnNames: id
+                    foreignKeyName: fk_order_items_item_id
+
+              - column:
+                  name: quantity
+                  type: SMALLINT
+                  constraints:
+                    nullable: false
+                    checkConstraint: "quantity > 0"
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITHOUT TIMEZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITHOUT TIMEZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addUniqueConstraint:
+            tableName: order_items
+            columnNames: order_id, item_id
+            constraintName: uk_order_items_order_id_item_id

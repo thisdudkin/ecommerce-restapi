@@ -19,6 +19,7 @@
     <modules>
         <module>ecommerce-restapi-user-service</module>
         <module>ecommerce-restapi-authentication-service</module>
+        <module>ecommerce-restapi-order-service</module>
     </modules>
 
     <properties>
@@ -40,6 +41,17 @@
         <spring-cloud.version>2025.1.1</spring-cloud.version>
         <jjwt.version>0.13.0</jjwt.version>
         <shedlock.version>7.5.0</shedlock.version>
+
+        <sonar.coverage.exclusions>
+            **/*Application.java,
+            **/client/**,
+            **/config/**,
+            **/dto/**,
+            **/entity/**,
+            **/enums/**,
+            **/exception/**,
+            **/security/**
+        </sonar.coverage.exclusions>
 
         <!-- Docker -->
         <docker.image.prefix>uglyraddan</docker.image.prefix>
@@ -81,6 +93,11 @@
                             <groupId>org.mapstruct</groupId>
                             <artifactId>mapstruct-processor</artifactId>
                             <version>${mapstruct.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.hibernate.orm</groupId>
+                            <artifactId>hibernate-jpamodelgen</artifactId>
+                            <version>${hibernate.version}</version>
                         </path>
                     </annotationProcessorPaths>
                     <compilerArgs>
@@ -226,6 +243,16 @@
                                         <format>XML</format>
                                         <format>HTML</format>
                                     </formats>
+                                    <excludes>
+                                        <exclude>**/*Application*</exclude>
+                                        <exclude>**/client/**</exclude>
+                                        <exclude>**/config/**</exclude>
+                                        <exclude>**/dto/**</exclude>
+                                        <exclude>**/entity/**</exclude>
+                                        <exclude>**/enums/**</exclude>
+                                        <exclude>**/exception/**</exclude>
+                                        <exclude>**/security/**</exclude>
+                                    </excludes>
                                 </configuration>
                             </execution>
                             <execution>
@@ -236,8 +263,14 @@
                                 </goals>
                                 <configuration>
                                     <excludes>
-                                        <exclude>org/example/ecommerce/auth/entity/**</exclude>
-                                        <exclude>org/example/ecommerce/users/entity/**</exclude>
+                                        <exclude>**/*Application*</exclude>
+                                        <exclude>**/client/**</exclude>
+                                        <exclude>**/config/**</exclude>
+                                        <exclude>**/dto/**</exclude>
+                                        <exclude>**/entity/**</exclude>
+                                        <exclude>**/enums/**</exclude>
+                                        <exclude>**/exception/**</exclude>
+                                        <exclude>**/security/**</exclude>
                                     </excludes>
                                     <rules>
                                         <rule>
