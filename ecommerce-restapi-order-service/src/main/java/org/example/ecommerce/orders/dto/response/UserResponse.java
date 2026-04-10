@@ -1,11 +1,9 @@
 package org.example.ecommerce.orders.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 public record UserResponse(
     Long id,
     String name,
@@ -13,6 +11,8 @@ public record UserResponse(
     LocalDate birthDate,
     String email,
     boolean active,
+    List<PaymentCardResponse> paymentCards,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
-) { }
+) {
+}

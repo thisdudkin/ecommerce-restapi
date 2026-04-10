@@ -1,0 +1,77 @@
+spring:
+  application:
+    name:                                      payment-service
+  mongodb:
+    uri:                                       ${PAYMENTS_DB:mongodb://root:root@localhost:27017/payments?authSource=admin}
+  data:
+    mongodb:
+      auto-index-creation:                     true
+  kafka:
+    bootstrap-servers:                         ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    admin:
+      fail-fast:                               true
+    producer:
+      acks:                                    all
+      key-serializer:                          org.apache.kafka.common.serialization.StringSerializer
+      value-serializer:                        org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      properties:
+        allow.auto.create.topics:              false
+        enable.idempotence:                    true
+        linger.ms:                             20
+        max.in.flight.requests.per.connection: 5
+        delivery.timeout.ms:                   120000
+        request.timeout.ms:                    30000
+        spring.json.add.type.headers:          false
+    consumer:
+      auto-offset-reset:                       earliest
+      group-id:                                payment-service-requests
+      key-deserializer:                        org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer:                      org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        spring.json.use.type.headers:          false
+        spring.json.trusted.packages:          org.example.ecommerce.payments.infrastructure.kafka.event
+        spring.json.value.default.type:        org.example.ecommerce.payments.infrastructure.kafka.event.PaymentRequestedEvent
+    listener:
+      missing-topics-fatal:                    false
+  output:
+    ansi:
+      enabled: always
+
+clients:
+  random-org:
+    base-url:     https://api.random.org
+    api-key:      ${RANDOM_ORG_API_KEY}
+  order-service:
+    base-url:     ${ORDER_SERVICE_BASE_URL:http://localhost:8083}
+
+payments:
+  messaging:
+    request-topic-name:         ecommerce.payments.requested.v1
+    recorded-topic-name:        ecommerce.payments.recorded.v1
+    topic-partitions:           ${PAYMENTS_TOPIC_PARTITIONS:1}
+    topic-replicas:             ${PAYMENTS_TOPIC_REPLICAS:1}
+    topic-min-in-sync-replicas: ${PAYMENTS_TOPIC_MIN_ISR:1}
+    outbox-batch-size:          ${PAYMENTS_OUTBOX_BATCH_SIZE:200}
+    outbox-poll-delay-ms:       ${PAYMENTS_OUTBOX_POLL_DELAY_MS:250}
+
+---
+spring:
+  config:
+    activate:
+      on-profile:      docker
+  mongodb:
+    uri:               ${PAYMENTS_DB:mongodb://root:root@mongo:27017/payments?authSource=admin}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
+
+clients:
+  order-service:
+    base-url:          ${ORDER_SERVICE_BASE_URL:http://order-service:8083}
+
+payments:
+  messaging:
+    topic-partitions:           ${PAYMENTS_TOPIC_PARTITIONS:1}
+    topic-replicas:             ${PAYMENTS_TOPIC_REPLICAS:1}
+    topic-min-in-sync-replicas: ${PAYMENTS_TOPIC_MIN_ISR:1}
+    outbox-batch-size:          ${PAYMENTS_OUTBOX_BATCH_SIZE:200}
+    outbox-poll-delay-ms:       ${PAYMENTS_OUTBOX_POLL_DELAY_MS:250}

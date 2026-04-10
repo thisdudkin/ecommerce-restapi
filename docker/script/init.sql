@@ -2,7 +2,7 @@
 
 CREATE ROLE user_service
   WITH LOGIN
-  PASSWORD '?'
+  PASSWORD 'user_service_password'
   NOSUPERUSER
   NOCREATEDB
   NOCREATEROLE
@@ -27,7 +27,7 @@ GRANT USAGE, SELECT ON SEQUENCES TO user_service;
 
 CREATE ROLE authentication_service
     WITH LOGIN
-    PASSWORD '?'
+    PASSWORD 'authentication_service_password'
     NOSUPERUSER
     NOCREATEDB
     NOCREATEROLE
@@ -52,7 +52,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
 
 CREATE ROLE order_service
     WITH LOGIN
-    PASSWORD '?'
+    PASSWORD 'order_service_password'
     NOSUPERUSER
     NOCREATEDB
     NOCREATEROLE

@@ -1,7 +1,8 @@
 package org.example.ecommerce.orders.client;
 
-import org.example.ecommerce.orders.config.UserClientFeignConfig;
+import org.example.ecommerce.orders.config.OpenFeignAuthorizationHeadersConfiguration;
 import org.example.ecommerce.orders.dto.response.UserResponse;
+import org.example.ecommerce.orders.exception.handler.UserClientFallbackFactory;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,7 +14,7 @@ import java.util.List;
 @FeignClient(
     name = "user-service",
     url = "${clients.user-service.base-url}",
-    configuration = UserClientFeignConfig.class,
+    configuration = OpenFeignAuthorizationHeadersConfiguration.class,
     fallbackFactory = UserClientFallbackFactory.class
 )
 public interface UserClient {
