@@ -17,4 +17,9 @@ public class StaticPublicEndpointPolicy implements PublicEndpointPolicy {
         return PUBLIC_PATHS.contains(path) || path.startsWith("/actuator/health/");
     }
 
+    @Override
+    public String[] pathPatterns() {
+        return PUBLIC_PATHS.toArray(String[]::new);
+    }
+
 }

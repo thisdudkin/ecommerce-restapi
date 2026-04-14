@@ -35,7 +35,7 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     Optional<Order> findById(Long orderId);
 
     @Query("""
-        select o
+        select distinct o
           from Order o
           left join fetch o.orderItems oi
           left join fetch oi.item
@@ -48,6 +48,8 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     @Query("""
         select o
           from Order o
+            left join fetch o.orderItems oi
+            left join fetch oi.item
           where o.id = :orderId
             and o.userId = :userId
             and o.deleted = true

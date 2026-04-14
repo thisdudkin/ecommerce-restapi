@@ -7,7 +7,7 @@ import org.example.ecommerce.orders.dto.request.OrderScrollRequest;
 import org.example.ecommerce.orders.dto.request.OrderStatusUpdateRequest;
 import org.example.ecommerce.orders.dto.response.OrderPageResponse;
 import org.example.ecommerce.orders.dto.response.OrderResponse;
-import org.example.ecommerce.orders.service.OrderService;
+import org.example.ecommerce.orders.service.OrderOrchestrator;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,17 +28,17 @@ import static org.example.ecommerce.orders.security.TokenConstants.USER_CLAIM_EX
 @RequestMapping("/api/v1/orders")
 public class OrderController {
 
-    private final OrderService orderService;
+    private final OrderOrchestrator orchestrator;
 
-    public OrderController(OrderService orderService) {
-        this.orderService = orderService;
+    public OrderController(OrderOrchestrator orchestrator) {
+        this.orchestrator = orchestrator;
     }
 
     @PostMapping
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrderResponse> create(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
                                                 UriComponentsBuilder uriBuilder) {
-        OrderResponse response = orderService.create(userId);
+        OrderResponse response = orchestrator.create(userId);
         return ResponseEntity.created(
             uriBuilder
                 .path("/api/v1/orders/{orderId}")
@@ -51,20 +51,20 @@ public class OrderController {
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrderResponse> get(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
                                              @PathVariable Long orderId) {
-        return ResponseEntity.ok(orderService.get(userId, orderId));
+        return ResponseEntity.ok(orchestrator.get(userId, orderId));
     }
 
     @GetMapping
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrderPageResponse> getMy(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
                                                    @Valid @ModelAttribute OrderScrollRequest request) {
-        return ResponseEntity.ok(orderService.getMy(userId, request));
+        return ResponseEntity.ok(orchestrator.getMy(userId, request));
     }
 
     @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrderPageResponse> getAll(@Valid @ModelAttribute OrderScrollRequest request) {
-        return ResponseEntity.ok(orderService.getAll(request));
+        return ResponseEntity.ok(orchestrator.getAll(request));
     }
 
     @PostMapping("/{orderId}/items")
@@ -72,7 +72,7 @@ public class OrderController {
     public ResponseEntity<OrderResponse> addItem(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
                                                  @PathVariable Long orderId,
                                                  @Valid @RequestBody OrderAddItemRequest request) {
-        return ResponseEntity.ok(orderService.addItem(userId, orderId, request));
+        return ResponseEntity.ok(orchestrator.addItem(userId, orderId, request));
     }
 
     @DeleteMapping("/{orderId}/items/{itemId}")
@@ -80,7 +80,7 @@ public class OrderController {
     public ResponseEntity<OrderResponse> removeItem(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
                                                     @PathVariable Long orderId,
                                                     @PathVariable Long itemId) {
-        return ResponseEntity.ok(orderService.removeItem(userId, orderId, itemId));
+        return ResponseEntity.ok(orchestrator.removeItem(userId, orderId, itemId));
     }
 
     @PatchMapping("/{orderId}/items")
@@ -88,7 +88,7 @@ public class OrderController {
     public ResponseEntity<OrderResponse> changeQuantity(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
                                                         @PathVariable Long orderId,
                                                         @Valid @RequestBody OrderChangeQuantityRequest request) {
-        return ResponseEntity.ok(orderService.changeQuantity(userId, orderId, request));
+        return ResponseEntity.ok(orchestrator.changeQuantity(userId, orderId, request));
     }
 
     @PatchMapping("/{orderId}/status")
@@ -96,14 +96,14 @@ public class OrderController {
     public ResponseEntity<OrderResponse> updateStatus(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
                                                       @PathVariable Long orderId,
                                                       @Valid @RequestBody OrderStatusUpdateRequest request) {
-        return ResponseEntity.ok(orderService.updateStatus(userId, orderId, request.status()));
+        return ResponseEntity.ok(orchestrator.updateStatus(userId, orderId, request.status()));
     }
 
     @DeleteMapping("/{orderId}")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
                                        @PathVariable Long orderId) {
-        orderService.delete(userId, orderId);
+        orchestrator.delete(userId, orderId);
         return ResponseEntity.noContent().build();
     }
 
@@ -111,7 +111,7 @@ public class OrderController {
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrderResponse> restore(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
                                                  @PathVariable Long orderId) {
-        return ResponseEntity.ok(orderService.restore(userId, orderId));
+        return ResponseEntity.ok(orchestrator.restore(userId, orderId));
     }
 
 }

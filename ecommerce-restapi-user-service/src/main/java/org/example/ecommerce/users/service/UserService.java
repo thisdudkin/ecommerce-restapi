@@ -66,6 +66,13 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public List<UserResponse> getByIds(Set<Long> ids) {
+        return userRepository.findAllByIdIn(ids).stream()
+            .map(userMapper::toResponse)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
     public UserScrollResponse getAll(String name,
                                      String surname,
                                      int size,

@@ -10,7 +10,7 @@ import org.example.ecommerce.orders.dto.response.UserResponse;
 import org.example.ecommerce.orders.entity.Item;
 import org.example.ecommerce.orders.entity.Order;
 import org.example.ecommerce.orders.exception.handler.RestExceptionHandler;
-import org.example.ecommerce.orders.service.OrderService;
+import org.example.ecommerce.orders.service.OrderOrchestrator;
 import org.example.ecommerce.orders.support.MethodSecurityTestConfig;
 import org.example.ecommerce.orders.support.TestPrincipal;
 import org.junit.jupiter.api.Test;
@@ -42,7 +42,6 @@ import static org.example.ecommerce.orders.support.TestDataGenerator.orderPageRe
 import static org.example.ecommerce.orders.support.TestDataGenerator.orderResponse;
 import static org.example.ecommerce.orders.support.TestDataGenerator.orderScrollRequest;
 import static org.example.ecommerce.orders.support.TestDataGenerator.userResponse;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
@@ -65,7 +64,7 @@ class OrderControllerTests {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private OrderService orderService;
+    private OrderOrchestrator orderOrchestrator;
 
     @SpringBootApplication
     @Import(RestExceptionHandler.class)
@@ -79,7 +78,7 @@ class OrderControllerTests {
         Order createdOrder = order(200L, userId);
         OrderResponse response = orderResponse(createdOrder, user);
 
-        when(orderService.create(userId))
+        when(orderOrchestrator.create(userId))
             .thenReturn(response);
 
         mockMvc.perform(
@@ -92,7 +91,7 @@ class OrderControllerTests {
             .andExpect(jsonPath("$.status").value("NEW"))
             .andExpect(jsonPath("$.user.id").value(1));
 
-        verify(orderService).create(userId);
+        verify(orderOrchestrator).create(userId);
     }
 
     @Test
@@ -114,7 +113,7 @@ class OrderControllerTests {
 
         OrderResponse response = orderResponse(existingOrder, user);
 
-        when(orderService.get(userId, 200L))
+        when(orderOrchestrator.get(userId, 200L))
             .thenReturn(response);
 
         mockMvc.perform(
@@ -126,7 +125,7 @@ class OrderControllerTests {
             .andExpect(jsonPath("$.totalPrice").value(10.00))
             .andExpect(jsonPath("$.status").value("NEW"));
 
-        verify(orderService).get(userId, 200L);
+        verify(orderOrchestrator).get(userId, 200L);
     }
 
     @Test
@@ -144,7 +143,7 @@ class OrderControllerTests {
             "next-token"
         );
 
-        when(orderService.getMy(eq(userId), eq(request)))
+        when(orderOrchestrator.getMy(userId, request))
             .thenReturn(response);
 
         mockMvc.perform(
@@ -158,7 +157,7 @@ class OrderControllerTests {
             .andExpect(jsonPath("$.orders[0].status").value("NEW"))
             .andExpect(jsonPath("$.token").value("next-token"));
 
-        verify(orderService).getMy(userId, request);
+        verify(orderOrchestrator).getMy(userId, request);
     }
 
     @Test
@@ -172,7 +171,7 @@ class OrderControllerTests {
             "next-token"
         );
 
-        when(orderService.getAll(eq(request)))
+        when(orderOrchestrator.getAll(request))
             .thenReturn(response);
 
         mockMvc.perform(
@@ -185,7 +184,7 @@ class OrderControllerTests {
             .andExpect(jsonPath("$.orders[0].id").value(200))
             .andExpect(jsonPath("$.token").value("next-token"));
 
-        verify(orderService).getAll(request);
+        verify(orderOrchestrator).getAll(request);
     }
 
     @Test
@@ -208,7 +207,7 @@ class OrderControllerTests {
 
         OrderResponse response = orderResponse(order, user);
 
-        when(orderService.addItem(eq(userId), eq(200L), eq(request)))
+        when(orderOrchestrator.addItem(userId, 200L, request))
             .thenReturn(response);
 
         mockMvc.perform(
@@ -222,7 +221,7 @@ class OrderControllerTests {
             .andExpect(jsonPath("$.totalPrice").value(20.00))
             .andExpect(jsonPath("$.orderItems.length()").value(1));
 
-        verify(orderService).addItem(userId, 200L, request);
+        verify(orderOrchestrator).addItem(userId, 200L, request);
     }
 
     @Test
@@ -237,7 +236,7 @@ class OrderControllerTests {
 
         OrderResponse response = orderResponse(order, user);
 
-        when(orderService.changeQuantity(eq(userId), eq(200L), eq(request)))
+        when(orderOrchestrator.changeQuantity(userId, 200L, request))
             .thenReturn(response);
 
         mockMvc.perform(
@@ -250,7 +249,7 @@ class OrderControllerTests {
             .andExpect(jsonPath("$.id").value(200))
             .andExpect(jsonPath("$.totalPrice").value(50.00));
 
-        verify(orderService).changeQuantity(userId, 200L, request);
+        verify(orderOrchestrator).changeQuantity(userId, 200L, request);
     }
 
     @Test
@@ -265,7 +264,7 @@ class OrderControllerTests {
         OrderResponse response = orderResponse(order, user);
         OrderStatusUpdateRequest request = new OrderStatusUpdateRequest(PAID);
 
-        when(orderService.updateStatus(userId, 200L, PAID))
+        when(orderOrchestrator.updateStatus(userId, 200L, PAID))
             .thenReturn(response);
 
         mockMvc.perform(
@@ -278,7 +277,7 @@ class OrderControllerTests {
             .andExpect(jsonPath("$.status").value("PAID"))
             .andExpect(jsonPath("$.totalPrice").value(20.00));
 
-        verify(orderService).updateStatus(userId, 200L, PAID);
+        verify(orderOrchestrator).updateStatus(userId, 200L, PAID);
     }
 
     @Test
@@ -294,7 +293,7 @@ class OrderControllerTests {
         OrderResponse response = orderResponse(order, user);
         OrderStatusUpdateRequest request = new OrderStatusUpdateRequest(COMPLETED);
 
-        when(orderService.updateStatus(userId, 200L, COMPLETED))
+        when(orderOrchestrator.updateStatus(userId, 200L, COMPLETED))
             .thenReturn(response);
 
         mockMvc.perform(
@@ -306,7 +305,7 @@ class OrderControllerTests {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("COMPLETED"));
 
-        verify(orderService).updateStatus(userId, 200L, COMPLETED);
+        verify(orderOrchestrator).updateStatus(userId, 200L, COMPLETED);
     }
 
     @Test
@@ -320,7 +319,7 @@ class OrderControllerTests {
         OrderResponse response = orderResponse(order, user);
         OrderStatusUpdateRequest request = new OrderStatusUpdateRequest(CANCELLED);
 
-        when(orderService.updateStatus(userId, 200L, CANCELLED))
+        when(orderOrchestrator.updateStatus(userId, 200L, CANCELLED))
             .thenReturn(response);
 
         mockMvc.perform(
@@ -332,7 +331,7 @@ class OrderControllerTests {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("CANCELLED"));
 
-        verify(orderService).updateStatus(userId, 200L, CANCELLED);
+        verify(orderOrchestrator).updateStatus(userId, 200L, CANCELLED);
     }
 
     @Test
@@ -345,7 +344,7 @@ class OrderControllerTests {
             )
             .andExpect(status().isNoContent());
 
-        verify(orderService).delete(userId, 200L);
+        verify(orderOrchestrator).delete(userId, 200L);
     }
 
     private Authentication userAuthentication() {

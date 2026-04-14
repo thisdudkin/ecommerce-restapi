@@ -15,6 +15,8 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import static org.springframework.data.domain.Sort.Order.asc;
@@ -36,6 +38,9 @@ public interface UserRepository extends JpaRepository<User, Long>,
     @Modifying
     @Query("UPDATE User u SET u.active = :active WHERE u.id = :id")
     int updateActiveStatus(Long id, Boolean active);
+
+    @EntityGraph(value = "userWithCards", type = LOAD)
+    List<User> findAllByIdIn(Collection<Long> ids);
 
     boolean existsByEmail(String email);
 
