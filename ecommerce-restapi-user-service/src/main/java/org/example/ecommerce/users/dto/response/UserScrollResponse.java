@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.List;
 
 public record UserScrollResponse(
-    List<UserListResponse> items,
+    List<UserResponse> items,
     boolean hasNext,
     String nextCursor
 ) implements Serializable {

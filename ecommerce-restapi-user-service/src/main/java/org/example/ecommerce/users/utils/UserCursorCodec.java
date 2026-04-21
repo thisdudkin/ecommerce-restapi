@@ -26,7 +26,7 @@ public class UserCursorCodec {
         this.base64Decoder = Base64.getUrlDecoder();
     }
 
-    public ScrollPosition decode(String cursor, SortDirection requestedDirection) {
+    public UserCursorPayload decode(String cursor, SortDirection requestedDirection) {
         try {
             String json = new String(base64Decoder.decode(cursor), StandardCharsets.UTF_8);
             UserCursorPayload payload = objectMapper.readValue(json, UserCursorPayload.class);
@@ -34,11 +34,7 @@ public class UserCursorCodec {
             if (payload.direction() != requestedDirection)
                 throw new InvalidCursorException("Cursor direction does not match request direction");
 
-            Map<String, Object> keys = new LinkedHashMap<>();
-            keys.put("createdAt", payload.createdAt());
-            keys.put("id", payload.id());
-
-            return ScrollPosition.forward(keys);
+            return payload;
         } catch (InvalidCursorException e) {
             throw e;
         } catch (Exception e) {

@@ -89,5 +89,9 @@ jobs:
       - name: Build Docker images with Maven profile
         run: ./mvnw -B install -DskipTests -PbuildDocker
 
-      - name: Push user-service image
-        run: docker push uglyraddan/ecommerce-restapi-user-service
+      - name: Push Docker images
+        run: |
+          docker push uglyraddan/ecommerce-restapi-user-service
+          docker push uglyraddan/ecommerce-restapi-authentication-service
+          docker push uglyraddan/ecommerce-restapi-order-service
+          docker push uglyraddan/ecommerce-restapi-api-gateway

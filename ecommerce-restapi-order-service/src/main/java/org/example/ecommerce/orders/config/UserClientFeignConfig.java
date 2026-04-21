@@ -2,8 +2,11 @@ package org.example.ecommerce.orders.config;
 
 import feign.Request;
 import feign.RequestInterceptor;
+import feign.RequestTemplate;
 import feign.codec.ErrorDecoder;
+import jakarta.servlet.http.HttpServletRequest;
 import org.example.ecommerce.orders.exception.handler.UserClientErrorDecoder;
+import org.example.ecommerce.orders.security.GatewayHeaderNames;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -42,10 +45,20 @@ public class UserClientFeignConfig {
             if (!(attributes instanceof ServletRequestAttributes servletAttributes))
                 return;
 
-            String authorization = servletAttributes.getRequest().getHeader(HttpHeaders.AUTHORIZATION);
-            if (StringUtils.hasText(authorization) && authorization.startsWith("Bearer "))
-                template.header(HttpHeaders.AUTHORIZATION, authorization);
+            HttpServletRequest request = servletAttributes.getRequest();
+
+            forwardIfPresent(request, template, GatewayHeaderNames.AUTHENTICATED_USER_ID);
+            forwardIfPresent(request, template, GatewayHeaderNames.AUTHENTICATED_USER_ROLE);
+            forwardIfPresent(request, template, GatewayHeaderNames.AUTHENTICATED_TOKEN_TYPE);
         };
+    }
+
+    private void forwardIfPresent(HttpServletRequest request,
+                                  RequestTemplate template,
+                                  String headerName) {
+        String value = request.getHeader(headerName);
+        if (StringUtils.hasText(value))
+            template.header(headerName, value);
     }
 
 }

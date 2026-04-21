@@ -5,15 +5,14 @@ import org.example.ecommerce.users.dto.request.PaymentCardRequest;
 import org.example.ecommerce.users.dto.request.UserRequest;
 import org.example.ecommerce.users.dto.request.UserUpdateRequest;
 import org.example.ecommerce.users.dto.response.PaymentCardResponse;
-import org.example.ecommerce.users.dto.response.UserListResponse;
 import org.example.ecommerce.users.dto.response.UserResponse;
 import org.example.ecommerce.users.dto.response.UserScrollResponse;
 import org.example.ecommerce.users.exception.custom.UserEmailAlreadyExistsException;
 import org.example.ecommerce.users.exception.custom.UserNotFoundException;
 import org.example.ecommerce.users.repository.enums.SortDirection;
-import org.example.ecommerce.users.security.config.SecurityConfig;
-import org.example.ecommerce.users.security.filter.JwtAuthenticationFilter;
-import org.example.ecommerce.users.security.jwt.AccessGuard;
+import org.example.ecommerce.users.security.GatewayHeadersAuthenticationFilter;
+import org.example.ecommerce.users.security.SecurityConfig;
+import org.example.ecommerce.users.security.AccessGuard;
 import org.example.ecommerce.users.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,7 +37,6 @@ import static org.example.ecommerce.users.utils.TestDataGenerator.name;
 import static org.example.ecommerce.users.utils.TestDataGenerator.paymentCardRequest;
 import static org.example.ecommerce.users.utils.TestDataGenerator.paymentCardResponse;
 import static org.example.ecommerce.users.utils.TestDataGenerator.surname;
-import static org.example.ecommerce.users.utils.TestDataGenerator.userListResponse;
 import static org.example.ecommerce.users.utils.TestDataGenerator.userRequest;
 import static org.example.ecommerce.users.utils.TestDataGenerator.userResponse;
 import static org.example.ecommerce.users.utils.TestDataGenerator.userUpdateRequest;
@@ -59,7 +57,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
     value = UserController.class,
     excludeFilters = {
         @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class),
-        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthenticationFilter.class)
+        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = GatewayHeadersAuthenticationFilter.class)
     }
 )
 @Import(TestSecurityConfig.class)
@@ -157,7 +155,7 @@ class UserControllerTests {
         int size = 10;
         String cursor = "cursor-1";
 
-        UserListResponse item = userListResponse();
+        UserResponse item = userResponse();
         UserScrollResponse response = new UserScrollResponse(List.of(item), true, "next-cursor");
 
         when(userService.getAll(name, surname, size, SortDirection.ASC, cursor))

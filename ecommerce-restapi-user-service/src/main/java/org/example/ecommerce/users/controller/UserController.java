@@ -20,8 +20,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
+
+import java.util.List;
+import java.util.Set;
 
 @Validated
 @RestController
@@ -40,7 +44,13 @@ public class UserController {
         return ResponseEntity.ok(userService.getById(id));
     }
 
-    @GetMapping
+    @GetMapping(params = "id")
+    public ResponseEntity<List<UserResponse>> getByIds(@RequestParam(value = "id") Set<Long> ids) {
+        var response = userService.getByIds(ids);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping(params = "!id")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserScrollResponse> getAll(@Valid @ModelAttribute UserScrollRequest request) {
         SortDirection sort = SortDirection.valueOf(request.resolvedDirection().toUpperCase());

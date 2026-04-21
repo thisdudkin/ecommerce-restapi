@@ -1,9 +1,9 @@
 package org.example.ecommerce.users.service;
 
 import org.example.ecommerce.users.dto.request.PaymentCardRequest;
+import org.example.ecommerce.users.dto.request.UserCursorPayload;
 import org.example.ecommerce.users.dto.request.UserRequest;
 import org.example.ecommerce.users.dto.request.UserUpdateRequest;
-import org.example.ecommerce.users.dto.response.UserListResponse;
 import org.example.ecommerce.users.dto.response.UserResponse;
 import org.example.ecommerce.users.dto.response.UserScrollResponse;
 import org.example.ecommerce.users.entity.PaymentCard;
@@ -26,16 +26,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.ScrollPosition;
-import org.springframework.data.domain.Window;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import static org.example.ecommerce.users.utils.TestDataGenerator.datetime;
 import static org.example.ecommerce.users.utils.TestDataGenerator.id;
@@ -45,7 +40,6 @@ import static org.example.ecommerce.users.utils.TestDataGenerator.paymentCardReq
 import static org.example.ecommerce.users.utils.TestDataGenerator.paymentCardRequests;
 import static org.example.ecommerce.users.utils.TestDataGenerator.surname;
 import static org.example.ecommerce.users.utils.TestDataGenerator.user;
-import static org.example.ecommerce.users.utils.TestDataGenerator.userListResponse;
 import static org.example.ecommerce.users.utils.TestDataGenerator.userRequest;
 import static org.example.ecommerce.users.utils.TestDataGenerator.userResponse;
 import static org.example.ecommerce.users.utils.TestDataGenerator.userUpdateRequest;
@@ -55,9 +49,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -112,7 +106,7 @@ class UserServiceTests {
 
     @Test
     @SuppressWarnings("unchecked")
-    void getAllShouldReturnFirstWindowWhenCursorIsNull() {
+    void getAllShouldReturnFirstPageWhenCursorIsNull() {
         String name = name();
         String surname = surname();
         int size = 2;
@@ -121,21 +115,18 @@ class UserServiceTests {
         User user1 = user(1L);
         User user2 = user(2L);
 
-        UserListResponse response1 = userListResponse(user1);
-        UserListResponse response2 = userListResponse(user2);
+        UserResponse response1 = userResponse();
+        UserResponse response2 = userResponse();
 
-        Window<User> window = mock(Window.class);
-        when(window.stream()).thenReturn(Stream.of(user1, user2));
-        when(window.hasNext()).thenReturn(false);
-
-        when(userRepository.findWindow(
+        when(userRepository.findPageWithCards(
             any(Specification.class),
-            eq(PageRequest.of(0, size, UserRepository.keysetSort(direction))),
-            eq(ScrollPosition.keyset())
-        )).thenReturn(window);
+            eq(size),
+            eq(direction),
+            isNull()
+        )).thenReturn(List.of(user1, user2));
 
-        when(userMapper.toListResponse(user1)).thenReturn(response1);
-        when(userMapper.toListResponse(user2)).thenReturn(response2);
+        when(userMapper.toResponse(user1)).thenReturn(response1);
+        when(userMapper.toResponse(user2)).thenReturn(response2);
 
         UserScrollResponse actual = userService.getAll(name, surname, size, direction, null);
 
@@ -143,36 +134,35 @@ class UserServiceTests {
         assertFalse(actual.hasNext());
         assertNull(actual.nextCursor());
 
-        verify(userRepository).findWindow(
+        verify(userRepository).findPageWithCards(
             any(Specification.class),
-            eq(PageRequest.of(0, size, UserRepository.keysetSort(direction))),
-            eq(ScrollPosition.keyset())
+            eq(size),
+            eq(direction),
+            isNull()
         );
-        verify(userMapper).toListResponse(user1);
-        verify(userMapper).toListResponse(user2);
+        verify(userMapper).toResponse(user1);
+        verify(userMapper).toResponse(user2);
         verify(userCursorCodec, never()).decode(anyString(), any());
         verify(userCursorCodec, never()).encode(any(), any(), any());
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    void getAllShouldUseKeysetWhenCursorIsBlank() {
+    void getAllShouldUseNullCursorWhenCursorIsBlank() {
         int size = 1;
         SortDirection direction = SortDirection.DESC;
+
         User user = user(1L);
-        UserListResponse response = userListResponse(user);
+        UserResponse response = userResponse();
 
-        Window<User> window = mock(Window.class);
-        when(window.stream()).thenReturn(Stream.of(user));
-        when(window.hasNext()).thenReturn(false);
-
-        when(userRepository.findWindow(
+        when(userRepository.findPageWithCards(
             any(Specification.class),
-            eq(PageRequest.of(0, size, UserRepository.keysetSort(direction))),
-            eq(ScrollPosition.keyset())
-        )).thenReturn(window);
+            eq(size),
+            eq(direction),
+            isNull()
+        )).thenReturn(List.of(user));
 
-        when(userMapper.toListResponse(user)).thenReturn(response);
+        when(userMapper.toResponse(user)).thenReturn(response);
 
         UserScrollResponse actual = userService.getAll(null, null, size, direction, "   ");
 
@@ -180,10 +170,11 @@ class UserServiceTests {
         assertFalse(actual.hasNext());
         assertNull(actual.nextCursor());
 
-        verify(userRepository).findWindow(
+        verify(userRepository).findPageWithCards(
             any(Specification.class),
-            eq(PageRequest.of(0, size, UserRepository.keysetSort(direction))),
-            eq(ScrollPosition.keyset())
+            eq(size),
+            eq(direction),
+            isNull()
         );
         verify(userCursorCodec, never()).decode(anyString(), any());
         verify(userCursorCodec, never()).encode(any(), any(), any());
@@ -196,27 +187,18 @@ class UserServiceTests {
         String cursor = "encoded-cursor";
         SortDirection direction = SortDirection.ASC;
 
-        ScrollPosition decodedPosition = ScrollPosition.forward(
-            Map.of(
-                "createdAt", datetime(),
-                "id", 10L
-            )
-        );
-
+        UserCursorPayload payload = new UserCursorPayload(datetime(), 10L, direction);
         User user = user(11L);
-        UserListResponse response = userListResponse(user);
+        UserResponse response = userResponse();
 
-        Window<User> window = mock(Window.class);
-        when(window.stream()).thenReturn(Stream.of(user));
-        when(window.hasNext()).thenReturn(false);
-
-        when(userCursorCodec.decode(cursor, direction)).thenReturn(decodedPosition);
-        when(userRepository.findWindow(
+        when(userCursorCodec.decode(cursor, direction)).thenReturn(payload);
+        when(userRepository.findPageWithCards(
             any(Specification.class),
-            eq(PageRequest.of(0, size, UserRepository.keysetSort(direction))),
-            eq(decodedPosition)
-        )).thenReturn(window);
-        when(userMapper.toListResponse(user)).thenReturn(response);
+            eq(size),
+            eq(direction),
+            eq(payload)
+        )).thenReturn(List.of(user));
+        when(userMapper.toResponse(user)).thenReturn(response);
 
         UserScrollResponse actual = userService.getAll(null, null, size, direction, cursor);
 
@@ -225,39 +207,38 @@ class UserServiceTests {
         assertNull(actual.nextCursor());
 
         verify(userCursorCodec).decode(cursor, direction);
-        verify(userRepository).findWindow(
+        verify(userRepository).findPageWithCards(
             any(Specification.class),
-            eq(PageRequest.of(0, size, UserRepository.keysetSort(direction))),
-            eq(decodedPosition)
+            eq(size),
+            eq(direction),
+            eq(payload)
         );
-        verify(userMapper).toListResponse(user);
+        verify(userMapper).toResponse(user);
         verify(userCursorCodec, never()).encode(any(), any(), any());
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    void getAllShouldReturnNextCursorWhenWindowHasNext() {
+    void getAllShouldReturnNextCursorWhenRepositoryReturnsSizePlusOneUsers() {
         int size = 2;
         SortDirection direction = SortDirection.DESC;
 
         User user1 = user(1L);
         User user2 = user(2L);
+        User user3 = user(3L);
 
-        UserListResponse response1 = userListResponse(user1);
-        UserListResponse response2 = userListResponse(user2);
+        UserResponse response1 = userResponse();
+        UserResponse response2 = userResponse();
 
-        Window<User> window = mock(Window.class);
-        when(window.stream()).thenReturn(Stream.of(user1, user2));
-        when(window.hasNext()).thenReturn(true);
-
-        when(userRepository.findWindow(
+        when(userRepository.findPageWithCards(
             any(Specification.class),
-            eq(PageRequest.of(0, size, UserRepository.keysetSort(direction))),
-            eq(ScrollPosition.keyset())
-        )).thenReturn(window);
+            eq(size),
+            eq(direction),
+            isNull()
+        )).thenReturn(List.of(user1, user2, user3));
 
-        when(userMapper.toListResponse(user1)).thenReturn(response1);
-        when(userMapper.toListResponse(user2)).thenReturn(response2);
+        when(userMapper.toResponse(user1)).thenReturn(response1);
+        when(userMapper.toResponse(user2)).thenReturn(response2);
         when(userCursorCodec.encode(response2.createdAt(), response2.id(), direction))
             .thenReturn("next-cursor");
 
@@ -268,23 +249,21 @@ class UserServiceTests {
         assertEquals("next-cursor", actual.nextCursor());
 
         verify(userCursorCodec).encode(response2.createdAt(), response2.id(), direction);
+        verify(userMapper, never()).toResponse(user3);
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    void getAllShouldReturnEmptyResultWhenWindowIsEmpty() {
+    void getAllShouldReturnEmptyResultWhenRepositoryReturnsEmptyList() {
         int size = 3;
         SortDirection direction = SortDirection.DESC;
 
-        Window<User> window = mock(Window.class);
-        when(window.stream()).thenReturn(Stream.of());
-        when(window.hasNext()).thenReturn(false);
-
-        when(userRepository.findWindow(
+        when(userRepository.findPageWithCards(
             any(Specification.class),
-            eq(PageRequest.of(0, size, UserRepository.keysetSort(direction))),
-            eq(ScrollPosition.keyset())
-        )).thenReturn(window);
+            eq(size),
+            eq(direction),
+            isNull()
+        )).thenReturn(List.of());
 
         UserScrollResponse actual = userService.getAll(null, null, size, direction, null);
 
@@ -292,7 +271,7 @@ class UserServiceTests {
         assertFalse(actual.hasNext());
         assertNull(actual.nextCursor());
 
-        verify(userMapper, never()).toListResponse(any());
+        verify(userMapper, never()).toResponse(any());
         verify(userCursorCodec, never()).encode(any(), any(), any());
     }
 

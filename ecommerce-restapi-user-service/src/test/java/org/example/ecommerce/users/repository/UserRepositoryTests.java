@@ -1,5 +1,6 @@
 package org.example.ecommerce.users.repository;
 
+import org.example.ecommerce.users.dto.request.UserCursorPayload;
 import org.example.ecommerce.users.entity.User;
 import org.example.ecommerce.users.repository.enums.SortDirection;
 import org.example.ecommerce.users.repository.specifications.UserSpecifications;
@@ -8,9 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.ScrollPosition;
-import org.springframework.data.domain.Window;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -55,100 +53,110 @@ class UserRepositoryTests {
     }
 
     @Test
-    void findWindowShouldReturnFirstWindowUsingKeysetPagination() {
-        Window<User> window = repository.findWindow(
+    void findPageWithCardsShouldReturnFirstPagePlusOneAndLoadCards() {
+        List<User> users = repository.findPageWithCards(
             UserSpecifications.withFilters(null, null),
-            PageRequest.of(0, 2, UserRepository.keysetSort(SortDirection.DESC)),
-            ScrollPosition.keyset()
+            2,
+            SortDirection.DESC,
+            null
         );
 
-        List<User> users = window.getContent();
-        assertThat(users).hasSize(2);
+        assertThat(users).hasSize(3);
         assertThat(users)
             .extracting(User::getSurname)
-            .containsExactly("Nabok", "Kolesneva");
-        assertThat(window.hasNext()).isTrue();
+            .containsExactly("Nabok", "Kolesneva", "Nechay-Nicevich");
+
+        assertThat(users.get(0).getPaymentCards()).hasSize(5);
+        assertThat(users.get(1).getPaymentCards()).hasSize(2);
+        assertThat(users.get(2).getPaymentCards()).hasSize(4);
     }
 
     @Test
-    void findWindowShouldFilterByNameIgnoringCaseAndTrim() {
-        Window<User> window = repository.findWindow(
+    void findPageWithCardsShouldFilterByNameIgnoringCaseAndTrim() {
+        List<User> users = repository.findPageWithCards(
             UserSpecifications.withFilters("  alex  ", null),
-            PageRequest.of(0, 10, UserRepository.keysetSort(SortDirection.ASC)),
-            ScrollPosition.keyset()
+            10,
+            SortDirection.ASC,
+            null
         );
 
-        List<User> users = window.getContent();
-        assertThat(users).isNotEmpty();
-        assertThat(users)
-            .extracting(User::getName)
-            .allMatch(name -> name.toLowerCase().contains("alex"));
+        assertThat(users).hasSize(1);
+        assertThat(users.getFirst().getName()).isEqualTo("Alexander");
+        assertThat(users.getFirst().getPaymentCards()).hasSize(3);
     }
 
     @Test
-    void findWindowShouldFilterBySurnameIgnoringCaseAndTrim() {
-        Window<User> window = repository.findWindow(
+    void findPageWithCardsShouldFilterBySurnameIgnoringCaseAndTrim() {
+        List<User> users = repository.findPageWithCards(
             UserSpecifications.withFilters(null, "  dud  "),
-            PageRequest.of(0, 10, UserRepository.keysetSort(SortDirection.ASC)),
-            ScrollPosition.keyset()
+            10,
+            SortDirection.ASC,
+            null
         );
 
-        List<User> users = window.getContent();
-        assertThat(users).isNotEmpty();
-        assertThat(users)
-            .extracting(User::getSurname)
-            .allMatch(surname -> surname.toLowerCase().contains("dud"));
+        assertThat(users).hasSize(1);
+        assertThat(users.getFirst().getSurname()).isEqualTo("Dudkin");
+        assertThat(users.getFirst().getPaymentCards()).hasSize(3);
     }
 
     @Test
-    void findWindowShouldFilterByNameAndSurname() {
-        Window<User> window = repository.findWindow(
+    void findPageWithCardsShouldFilterByNameAndSurname() {
+        List<User> users = repository.findPageWithCards(
             UserSpecifications.withFilters("alex", "dud"),
-            PageRequest.of(0, 10, UserRepository.keysetSort(SortDirection.ASC)),
-            ScrollPosition.keyset()
+            10,
+            SortDirection.ASC,
+            null
         );
 
-        List<User> users = window.getContent();
         assertThat(users).hasSize(1);
         assertThat(users.getFirst().getName()).isEqualTo("Alexander");
         assertThat(users.getFirst().getSurname()).isEqualTo("Dudkin");
+        assertThat(users.getFirst().getPaymentCards()).hasSize(3);
     }
 
     @Test
-    void findWindowShouldIgnoreBlankFilters() {
-        Window<User> window = repository.findWindow(
+    void findPageWithCardsShouldIgnoreBlankFilters() {
+        List<User> users = repository.findPageWithCards(
             UserSpecifications.withFilters("   ", "   "),
-            PageRequest.of(0, 10, UserRepository.keysetSort(SortDirection.ASC)),
-            ScrollPosition.keyset()
+            10,
+            SortDirection.ASC,
+            null
         );
 
-        List<User> users = window.getContent();
-        assertThat(users).isNotEmpty();
+        assertThat(users).hasSize(5);
     }
 
     @Test
-    void findWindowShouldReturnSecondWindowUsingKeysetPagination() {
-        Window<User> firstWindow = repository.findWindow(
+    void findPageWithCardsShouldReturnSecondPageUsingCursor() {
+        List<User> firstPage = repository.findPageWithCards(
             UserSpecifications.withFilters(null, null),
-            PageRequest.of(0, 2, UserRepository.keysetSort(SortDirection.DESC)),
-            ScrollPosition.keyset()
+            2,
+            SortDirection.DESC,
+            null
         );
 
-        ScrollPosition nextPosition = firstWindow.positionAt(firstWindow.size() - 1);
-
-        Window<User> secondWindow = repository.findWindow(
-            UserSpecifications.withFilters(null, null),
-            PageRequest.of(0, 2, UserRepository.keysetSort(SortDirection.DESC)),
-            nextPosition
+        User lastVisibleUserFromFirstPage = firstPage.get(1);
+        UserCursorPayload cursor = new UserCursorPayload(
+            lastVisibleUserFromFirstPage.getCreatedAt(),
+            lastVisibleUserFromFirstPage.getId(),
+            SortDirection.DESC
         );
 
-        List<User> users = secondWindow.getContent();
+        List<User> secondPage = repository.findPageWithCards(
+            UserSpecifications.withFilters(null, null),
+            2,
+            SortDirection.DESC,
+            cursor
+        );
 
-        assertThat(users).hasSize(2);
-        assertThat(users)
+        assertThat(secondPage).hasSize(3);
+        assertThat(secondPage)
             .extracting(User::getSurname)
-            .containsExactly("Nechay-Nicevich", "Inchakov");
-        assertThat(secondWindow.hasNext()).isTrue();
+            .containsExactly("Nechay-Nicevich", "Inchakov", "Dudkin");
+
+        assertThat(secondPage.get(0).getPaymentCards()).hasSize(4);
+        assertThat(secondPage.get(1).getPaymentCards()).hasSize(1);
+        assertThat(secondPage.get(2).getPaymentCards()).hasSize(3);
     }
 
     @Test

@@ -1,5 +1,6 @@
 package org.example.ecommerce.auth.service.auth;
 
+import org.example.ecommerce.auth.annotation.Osim;
 import org.example.ecommerce.auth.client.UserClient;
 import org.example.ecommerce.auth.dto.request.LoginRequest;
 import org.example.ecommerce.auth.dto.request.RefreshTokenRequest;
@@ -61,7 +62,7 @@ public class AuthService {
         this.refreshTokenService = refreshTokenService;
     }
 
-    @Transactional
+    @Osim
     public TokenResponse register(RegisterRequest request) {
         if (credentialRepository.existsByLogin(request.login()))
             throw new CredentialAlreadyExistsException("Credential with login '%s' already exists".formatted(request.login()));

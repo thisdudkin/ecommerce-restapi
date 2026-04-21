@@ -1,9 +1,9 @@
 package org.example.ecommerce.users.service;
 
 import org.example.ecommerce.users.dto.request.PaymentCardRequest;
+import org.example.ecommerce.users.dto.request.UserCursorPayload;
 import org.example.ecommerce.users.dto.request.UserRequest;
 import org.example.ecommerce.users.dto.request.UserUpdateRequest;
-import org.example.ecommerce.users.dto.response.UserListResponse;
 import org.example.ecommerce.users.dto.response.UserResponse;
 import org.example.ecommerce.users.dto.response.UserScrollResponse;
 import org.example.ecommerce.users.entity.User;
@@ -25,9 +25,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.ScrollPosition;
-import org.springframework.data.domain.Window;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,32 +63,45 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public List<UserResponse> getByIds(Set<Long> ids) {
+        return userRepository.findAllByIdIn(ids).stream()
+            .map(userMapper::toResponse)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
     public UserScrollResponse getAll(String name,
                                      String surname,
                                      int size,
                                      SortDirection direction,
                                      String cursor) {
-        ScrollPosition position = (cursor == null || cursor.isBlank())
-            ? ScrollPosition.keyset()
+        UserCursorPayload cursorPayload = (cursor == null || cursor.isBlank())
+            ? null
             : userCursorCodec.decode(cursor, direction);
 
-        Window<User> window = userRepository.findWindow(
+        List<User> users = userRepository.findPageWithCards(
             UserSpecifications.withFilters(name, surname),
-            PageRequest.of(0, size, UserRepository.keysetSort(direction)),
-            position
+            size,
+            direction,
+            cursorPayload
         );
 
-        List<UserListResponse> items = window.stream()
-            .map(userMapper::toListResponse)
+        boolean hasNext = users.size() > size;
+        if (hasNext) {
+            users = List.copyOf(users.subList(0, size));
+        }
+
+        List<UserResponse> items = users.stream()
+            .map(userMapper::toResponse)
             .toList();
 
         String nextCursor = null;
-        if (!items.isEmpty() && window.hasNext()) {
-            UserListResponse last = items.getLast();
+        if (!items.isEmpty() && hasNext) {
+            UserResponse last = items.getLast();
             nextCursor = userCursorCodec.encode(last.createdAt(), last.id(), direction);
         }
 
-        return new UserScrollResponse(items, window.hasNext(), nextCursor);
+        return new UserScrollResponse(items, hasNext, nextCursor);
     }
 
     @Transactional

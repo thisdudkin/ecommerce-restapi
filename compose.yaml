@@ -1,52 +1,124 @@
 services:
+  api-gateway:
+    image: uglyraddan/ecommerce-restapi-api-gateway
+    container_name: api-gateway
+    restart: unless-stopped
+    environment:
+      SERVER_PORT:           8080
+      USER_SERVICE_URI:      http://user-service:8081
+      AUTH_SERVICE_URI:      http://authentication-service:8082
+      AUTH_SERVICE_BASE_URL: http://authentication-service:8082
+      ORDER_SERVICE_URI:     http://order-service:8083
+      AUTH_VALIDATE_PATH:    ${AUTH_VALIDATE_PATH}
+      AUTH_CACHE_TTL:        ${AUTH_CACHE_TTL}
+      AUTH_CACHE_KEY_PREFIX: ${AUTH_CACHE_KEY_PREFIX}
+      REDIS_HOST:            redis
+      REDIS_PORT:            6379
+    ports:
+      - "8080:8080"
+    depends_on:
+      user-service:
+        condition: service_started
+      authentication-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    networks:
+      - edge-network
+      - internal-network
+
   user-service:
     image: uglyraddan/ecommerce-restapi-user-service
     container_name: user-service
+    restart: unless-stopped
     environment:
-      SERVER_PORT: 8081
-      USERS_DB_PASSWORD: ${USERS_DB_PASSWORD}
-      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
-    ports:
-      - "8081:8081"
+      SERVER_PORT:            8081
+      SPRING_PROFILES_ACTIVE: docker
+      USERS_DB:               ${USERS_DB}
+      USERS_DB_USERNAME:      ${USERS_DB_USERNAME}
+      USERS_DB_PASSWORD:      ${USERS_DB_PASSWORD}
+    expose:
+      - "8081"
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal-network
 
   authentication-service:
     image: uglyraddan/ecommerce-restapi-authentication-service
     container_name: authentication-service
+    restart: unless-stopped
     environment:
-      SERVER_PORT: 8082
-      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD}
-      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
-      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
-      USER_SERVICE_BASE_URL: ${USER_SERVICE_BASE_URL}
-    ports:
-      - "8082:8082"
+      SERVER_PORT:            8082
+      SPRING_PROFILES_ACTIVE: docker
+      IDENTITY_DB:            ${IDENTITY_DB}
+      IDENTITY_DB_USERNAME:   ${IDENTITY_DB_USERNAME}
+      IDENTITY_DB_PASSWORD:   ${IDENTITY_DB_PASSWORD}
+      JWT_PRIVATE_KEY:        ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY:         ${JWT_PUBLIC_KEY}
+      USER_SERVICE_BASE_URL:  http://user-service:8081
+    expose:
+      - "8082"
     depends_on:
       postgres:
         condition: service_healthy
+      user-service:
+        condition: service_started
+    networks:
+      - internal-network
+
+  order-service:
+    image: uglyraddan/ecommerce-restapi-order-service
+    container_name: order-service
+    restart: unless-stopped
+    environment:
+      SERVER_PORT:            8083
+      SPRING_PROFILES_ACTIVE: docker
+      ORDERS_DB:              ${ORDERS_DB}
+      ORDERS_DB_USERNAME:     ${ORDERS_DB_USERNAME}
+      ORDERS_DB_PASSWORD:     ${ORDERS_DB_PASSWORD}
+      USER_SERVICE_BASE_URL:  http://user-service:8081
+      CURSOR_SECRET:          ${CURSOR_SECRET}
+    expose:
+      - "8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+    networks:
+      - internal-network
 
   postgres:
     image: postgres:17.0
     container_name: postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_DB:       ${POSTGRES_DB}
-      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test:     ["CMD-SHELL", "pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_USER}"]
       interval: 30s
       timeout:  5s
       retries:  5
+    networks:
+      - edge-network
+      - internal-network
 
   redis:
     image: redis:8.0-alpine
     container_name: redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     healthcheck:
@@ -54,7 +126,18 @@ services:
       interval: 30s
       timeout:  5s
       retries:  5
+    networks:
+      - edge-network
+      - internal-network
 
 volumes:
   postgres_data:
     driver: local
+
+networks:
+  edge-network:
+    driver: bridge
+
+  internal-network:
+    driver: bridge
+    internal: true

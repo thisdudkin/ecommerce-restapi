@@ -5,14 +5,11 @@ import org.example.ecommerce.users.dto.request.UserCursorPayload;
 import org.example.ecommerce.users.exception.custom.InvalidCursorException;
 import org.example.ecommerce.users.repository.enums.SortDirection;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.KeysetScrollPosition;
-import org.springframework.data.domain.ScrollPosition;
 import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Base64;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -43,28 +40,21 @@ class UserCursorCodecTests {
     }
 
     @Test
-    void shouldDecodeValidCursorToForwardScrollPosition() {
+    void shouldDecodeValidCursorToPayload() {
         UserCursorCodec codec = new UserCursorCodec(objectMapper);
 
         LocalDateTime createdAt = LocalDateTime.of(2024, 3, 10, 12, 30, 45);
         Long id = 123L;
 
-        UserCursorPayload payload = new UserCursorPayload(createdAt, id, SortDirection.ASC);
-        String json = objectMapper.writeValueAsString(payload);
+        UserCursorPayload expected = new UserCursorPayload(createdAt, id, SortDirection.ASC);
+        String json = objectMapper.writeValueAsString(expected);
         String cursor = Base64.getUrlEncoder()
             .withoutPadding()
             .encodeToString(json.getBytes(StandardCharsets.UTF_8));
 
-        ScrollPosition position = codec.decode(cursor, SortDirection.ASC);
+        UserCursorPayload actual = codec.decode(cursor, SortDirection.ASC);
 
-        assertThat(position).isInstanceOf(KeysetScrollPosition.class);
-
-        KeysetScrollPosition keysetPosition = (KeysetScrollPosition) position;
-        Map<String, Object> keys = keysetPosition.getKeys();
-
-        assertThat(keys)
-            .containsEntry("createdAt", createdAt)
-            .containsEntry("id", id);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -75,16 +65,11 @@ class UserCursorCodecTests {
         Long id = 999L;
 
         String cursor = codec.encode(createdAt, id, SortDirection.DESC);
-        ScrollPosition position = codec.decode(cursor, SortDirection.DESC);
+        UserCursorPayload actual = codec.decode(cursor, SortDirection.DESC);
 
-        assertThat(position).isInstanceOf(KeysetScrollPosition.class);
-
-        KeysetScrollPosition keysetPosition = (KeysetScrollPosition) position;
-        Map<String, Object> keys = keysetPosition.getKeys();
-
-        assertThat(keys)
-            .containsEntry("createdAt", createdAt)
-            .containsEntry("id", id);
+        assertThat(actual.createdAt()).isEqualTo(createdAt);
+        assertThat(actual.id()).isEqualTo(id);
+        assertThat(actual.direction()).isEqualTo(SortDirection.DESC);
     }
 
     @Test
