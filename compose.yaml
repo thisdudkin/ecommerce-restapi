@@ -2,136 +2,186 @@ services:
   api-gateway:
     image: uglyraddan/ecommerce-restapi-api-gateway
     container_name: api-gateway
-    restart: unless-stopped
     environment:
-      SERVER_PORT:           8080
-      USER_SERVICE_URI:      http://user-service:8081
-      AUTH_SERVICE_URI:      http://authentication-service:8082
-      AUTH_SERVICE_BASE_URL: http://authentication-service:8082
-      ORDER_SERVICE_URI:     http://order-service:8083
-      AUTH_VALIDATE_PATH:    ${AUTH_VALIDATE_PATH}
-      AUTH_CACHE_TTL:        ${AUTH_CACHE_TTL}
-      AUTH_CACHE_KEY_PREFIX: ${AUTH_CACHE_KEY_PREFIX}
-      REDIS_HOST:            redis
-      REDIS_PORT:            6379
+      SERVER_PORT: 8080
     ports:
       - "8080:8080"
     depends_on:
-      user-service:
-        condition: service_started
-      authentication-service:
-        condition: service_started
-      order-service:
-        condition: service_started
-      redis:
-        condition: service_healthy
+      - redis
     networks:
+      - internal-network
       - edge-network
-      - internal-network
-
-  user-service:
-    image: uglyraddan/ecommerce-restapi-user-service
-    container_name: user-service
-    restart: unless-stopped
-    environment:
-      SERVER_PORT:            8081
-      SPRING_PROFILES_ACTIVE: docker
-      USERS_DB:               ${USERS_DB}
-      USERS_DB_USERNAME:      ${USERS_DB_USERNAME}
-      USERS_DB_PASSWORD:      ${USERS_DB_PASSWORD}
-    expose:
-      - "8081"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - internal-network
 
   authentication-service:
     image: uglyraddan/ecommerce-restapi-authentication-service
     container_name: authentication-service
-    restart: unless-stopped
     environment:
-      SERVER_PORT:            8082
-      SPRING_PROFILES_ACTIVE: docker
-      IDENTITY_DB:            ${IDENTITY_DB}
-      IDENTITY_DB_USERNAME:   ${IDENTITY_DB_USERNAME}
-      IDENTITY_DB_PASSWORD:   ${IDENTITY_DB_PASSWORD}
-      JWT_PRIVATE_KEY:        ${JWT_PRIVATE_KEY}
-      JWT_PUBLIC_KEY:         ${JWT_PUBLIC_KEY}
-      USER_SERVICE_BASE_URL:  http://user-service:8081
+      SERVER_PORT:     8082
+      JWT_PUBLIC_KEY:  ${JWT_PUBLIC_KEY}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
     expose:
       - "8082"
     depends_on:
-      postgres:
-        condition: service_healthy
-      user-service:
-        condition: service_started
+      - postgres
     networks:
       - internal-network
 
   order-service:
     image: uglyraddan/ecommerce-restapi-order-service
     container_name: order-service
-    restart: unless-stopped
     environment:
-      SERVER_PORT:            8083
-      SPRING_PROFILES_ACTIVE: docker
-      ORDERS_DB:              ${ORDERS_DB}
-      ORDERS_DB_USERNAME:     ${ORDERS_DB_USERNAME}
-      ORDERS_DB_PASSWORD:     ${ORDERS_DB_PASSWORD}
-      USER_SERVICE_BASE_URL:  http://user-service:8081
-      CURSOR_SECRET:          ${CURSOR_SECRET}
+      SERVER_PORT:   8083
+      CURSOR_SECRET: ${CURSOR_SECRET}
     expose:
       - "8083"
     depends_on:
-      postgres:
-        condition: service_healthy
-      user-service:
-        condition: service_started
+      - postgres
+      - kafka
     networks:
       - internal-network
+
+  payment-service:
+    image: uglyraddan/ecommerce-restapi-payment-service
+    container_name: payment-service
+    environment:
+      SERVER_PORT:        8084
+      RANDOM_ORG_API_KEY: ${RANDOM_ORG_API_KEY}
+    expose:
+      - "8084"
+    depends_on:
+      - mongo
+      - kafka
+    networks:
+      - internal-network
+      - edge-network
+
+  user-service:
+    image: uglyraddan/ecommerce-restapi-user-service
+    container_name: user-service
+    environment:
+      SERVER_PORT: 8081
+    expose:
+      - "8081"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - internal-network
+
+  # Infrastructure
 
   postgres:
     image: postgres:17.0
     container_name: postgres
-    restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB:       ${POSTGRES_DB:-postgres}
+      POSTGRES_USER:     ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_USER}"]
-      interval: 30s
-      timeout:  5s
-      retries:  5
+      - ./docker/script/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
-      - edge-network
       - internal-network
+      - edge-network
 
   redis:
     image: redis:8.0-alpine
     container_name: redis
-    restart: unless-stopped
     ports:
       - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout:  5s
-      retries:  5
     networks:
-      - edge-network
       - internal-network
+      - edge-network
+
+  mongo:
+    image: mongo:8.0
+    container_name: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-root}
+      MONGO_INITDB_DATABASE:      payments
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - internal-network
+      - edge-network
+
+  kafka:
+    image: apache/kafka:4.1.0
+    container_name: kafka
+    restart: unless-stopped
+    hostname: kafka
+    environment:
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_NUM_PARTITIONS: 1
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_HEAP_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        cat >/tmp/server.properties <<EOF
+        process.roles=$${KAFKA_PROCESS_ROLES}
+        node.id=$${KAFKA_NODE_ID}
+        broker.id=$${KAFKA_NODE_ID}
+        controller.quorum.voters=$${KAFKA_CONTROLLER_QUORUM_VOTERS}
+        listeners=$${KAFKA_LISTENERS}
+        advertised.listeners=$${KAFKA_ADVERTISED_LISTENERS}
+        listener.security.protocol.map=$${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}
+        controller.listener.names=$${KAFKA_CONTROLLER_LISTENER_NAMES}
+        inter.broker.listener.name=$${KAFKA_INTER_BROKER_LISTENER_NAME}
+        log.dirs=$${KAFKA_LOG_DIRS}
+        num.partitions=$${KAFKA_NUM_PARTITIONS}
+        default.replication.factor=$${KAFKA_DEFAULT_REPLICATION_FACTOR}
+        min.insync.replicas=$${KAFKA_MIN_INSYNC_REPLICAS}
+        offsets.topic.replication.factor=$${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR}
+        transaction.state.log.replication.factor=$${KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR}
+        transaction.state.log.min.isr=$${KAFKA_TRANSACTION_STATE_LOG_MIN_ISR}
+        auto.create.topics.enable=$${KAFKA_AUTO_CREATE_TOPICS_ENABLE}
+        delete.topic.enable=$${KAFKA_DELETE_TOPIC_ENABLE}
+        EOF
+
+        /opt/kafka/bin/kafka-storage.sh format \
+          --ignore-formatted \
+          --cluster-id "$${CLUSTER_ID}" \
+          --config /tmp/server.properties
+
+        exec /opt/kafka/bin/kafka-server-start.sh /tmp/server.properties
+    networks:
+      - internal-network
+      - edge-network
 
 volumes:
   postgres_data:
+    driver: local
+  mongo_data:
+    driver: local
+  kafka_data:
     driver: local
 
 networks:

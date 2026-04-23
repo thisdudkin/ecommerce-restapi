@@ -1,48 +1,54 @@
 spring:
   application:
-    name: authentication-service
+    name:                 authentication-service
   datasource:
-    url: ${IDENTITY_DB:jdbc:postgresql://localhost:5432/identity_db}
-    username: ${IDENTITY_DB_USERNAME:authentication_service}
-    password: ${IDENTITY_DB_PASSWORD}
+    url:                  ${IDENTITY_DB:jdbc:postgresql://localhost:5432/identity_db}
+    username:             ${IDENTITY_DB_USERNAME:authentication_service}
+    password:             ${IDENTITY_DB_PASSWORD:authentication_service_password}
   jpa:
-    show-sql: false
-    open-in-view: false
+    show-sql:             false
+    open-in-view:         false
     properties:
       hibernate:
-        format_sql: false
-        highlight_sql: false
+        format_sql:       false
+        highlight_sql:    false
         use_sql_comments: false
-  liquibase:
-    enabled: true
+  output:
+    ansi:
+      enabled: always
 
 security:
   jwt:
-    public-key:   ${JWT_PUBLIC_KEY}
-    private-key: ${JWT_PRIVATE_KEY}
-    access-expiration:  900
-    refresh-expiration: 2592000
-    issuer: authentication-service
+    public-key:           ${JWT_PUBLIC_KEY}
+    private-key:          ${JWT_PRIVATE_KEY}
+    access-expiration:    900
+    refresh-expiration:   2592000
+    issuer:               authentication-service
 
 clients:
   user-service:
-    base-url: ${USER_SERVICE_BASE_URL:http://localhost:8081}
-    connect-timeout: 3s
-    read-timeout: 5s
+    base-url:             ${USER_SERVICE_BASE_URL:http://localhost:8081}
 
 registration:
   compensation:
-    fixed-delay-ms: 30000
+    fixed-delay-ms:       30000
 
 decorator:
   datasource:
     datasource-proxy:
-      multiline: true
-      format-sql: true
+      logging:          slf4j
+      query:
+        enable-logging: false
+      slow-query:
+        enable-logging: true
+      json-format:      false
+      count-query:      true
+      format-sql:       true
+      multiline:        true
 
 logging:
   level:
-    org.hibernate.SQL: off
+    org.hibernate.SQL:           off
     org.hibernate.orm.jdbc.bind: off
     net.ttddyy.dsproxy.listener: debug
 
@@ -52,6 +58,10 @@ spring:
     activate:
       on-profile: docker
   datasource:
-    url: ${IDENTITY_DB:jdbc:postgresql://postgres:5432/identity_db}
+    url:      ${IDENTITY_DB:jdbc:postgresql://postgres:5432/identity_db}
     username: ${IDENTITY_DB_USERNAME:authentication_service}
-    password: ${IDENTITY_DB_PASSWORD}
+    password: ${IDENTITY_DB_PASSWORD:authentication_service_password}
+
+clients:
+  user-service:
+    base-url: ${USER_SERVICE_BASE_URL:http://user-service:8081}

@@ -12,9 +12,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -88,12 +89,13 @@ class AuthenticateRequestServiceTests {
 
     @Test
     void authenticateShouldFailFastWhenAuthorizationHeaderIsInvalid() {
-        MissingBearerTokenException ex = assertThrows(
-            MissingBearerTokenException.class,
-            () -> service.authenticate("Basic token")
-        );
+        StepVerifier.create(service.authenticate("Basic token"))
+            .expectErrorSatisfies(error -> {
+                assertInstanceOf(MissingBearerTokenException.class, error);
+                assertEquals("Missing or invalid Authorization header", error.getMessage());
+            })
+            .verify();
 
-        assertEquals("Missing or invalid Authorization header", ex.getMessage());
         verifyNoInteractions(authenticationValidator, authenticationCache);
     }
 

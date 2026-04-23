@@ -9,7 +9,9 @@ import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
-@Mapper(config = CentralMapperConfig.class)
+@Mapper(
+    config = CentralMapperConfig.class
+)
 public interface ItemMapper {
 
     Item toEntity(ItemCreateRequest request);

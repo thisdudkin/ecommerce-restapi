@@ -6,22 +6,23 @@ management:
 
 gateway:
   routes:
-    user-service-uri: ${USER_SERVICE_URI:http://localhost:8081}
-    auth-service-uri: ${AUTH_SERVICE_URI:http://localhost:8082}
-    order-service-uri: ${ORDER_SERVICE_URI:http://localhost:8083}
+    user-service-uri:    ${USER_SERVICE_URI:http://localhost:8081}
+    auth-service-uri:    ${AUTH_SERVICE_URI:http://localhost:8082}
+    order-service-uri:   ${ORDER_SERVICE_URI:http://localhost:8083}
+    payment-service-uri: ${PAYMENT_SERVICE_URI:http://localhost:8084}
 
   auth-client:
-    base-url: ${AUTH_SERVICE_BASE_URL:http://localhost:8082}
-    validate-path: ${AUTH_VALIDATE_PATH:/api/v1/auth/validate}
+    base-url:           ${gateway.routes.auth-service-uri}
+    validate-path:      /api/v1/auth/validate
     connect-timeout-ms: 2000
-    read-timeout-ms: 3000
+    read-timeout-ms:    3000
 
   auth-cache:
-    ttl: ${AUTH_CACHE_TTL:30s}
-    key-prefix: ${AUTH_CACHE_KEY_PREFIX:auth:validate:}
+    ttl:        30s
+    key-prefix: auth-validate
 
   http-timeouts:
-    connect-timeout-ms: 2000
+    connect-timeout-ms:  2000
     response-timeout-ms: 5000
 
 spring:
@@ -34,3 +35,20 @@ spring:
   output:
     ansi:
       enabled: always
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+
+gateway:
+  routes:
+    user-service-uri:    ${USER_SERVICE_URI:http://user-service:8081}
+    auth-service-uri:    ${AUTH_SERVICE_URI:http://authentication-service:8082}
+    order-service-uri:   ${ORDER_SERVICE_URI:http://order-service:8083}
+    payment-service-uri: ${PAYMENT_SERVICE_URI:http://payment-service:8084}

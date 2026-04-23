@@ -1,0 +1,31 @@
+spring:
+  jpa:
+    show-sql:             false
+    open-in-view:         false
+    properties:
+      hibernate:
+        format_sql:       false
+        highlight_sql:    false
+        use_sql_comments: false
+  output:
+    ansi:
+      enabled: always
+
+decorator:
+  datasource:
+    datasource-proxy:
+      logging:          slf4j
+      query:
+        enable-logging: false
+      slow-query:
+        enable-logging: true
+      json-format:      false
+      count-query:      true
+      format-sql:       true
+      multiline:        true
+
+logging:
+  level:
+    org.hibernate.SQL:           off
+    org.hibernate.orm.jdbc.bind: off
+    net.ttddyy.dsproxy.listener: debug

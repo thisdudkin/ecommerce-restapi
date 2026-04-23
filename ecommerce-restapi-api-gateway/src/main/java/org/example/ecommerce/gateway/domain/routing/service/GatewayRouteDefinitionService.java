@@ -61,6 +61,15 @@ public class GatewayRouteDefinitionService {
                     HttpHeaders.COOKIE,
                     HttpHeaders.AUTHORIZATION
                 )
+            ),
+            new RouteSpec(
+                "payment-service",
+                List.of("/api/v1/payments/**"),
+                properties.paymentServiceUri(),
+                List.of(
+                    HttpHeaders.COOKIE,
+                    HttpHeaders.AUTHORIZATION
+                )
             )
         );
     }
