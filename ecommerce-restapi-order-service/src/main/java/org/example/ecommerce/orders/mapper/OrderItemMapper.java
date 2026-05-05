@@ -8,7 +8,9 @@ import org.mapstruct.Named;
 
 import java.math.BigDecimal;
 
-@Mapper(config = CentralMapperConfig.class)
+@Mapper(
+    config = CentralMapperConfig.class
+)
 public interface OrderItemMapper {
 
     @Mapping(target = "itemId", source = "item.id")

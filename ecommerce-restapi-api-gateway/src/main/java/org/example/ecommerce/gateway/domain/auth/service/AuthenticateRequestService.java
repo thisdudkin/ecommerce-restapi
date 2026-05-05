@@ -22,11 +22,13 @@ public class AuthenticateRequestService implements RequestAuthenticator {
 
     @Override
     public Mono<AuthenticatedUser> authenticate(String authorizationHeader) {
-        AccessToken accessToken = AccessToken.fromAuthorizationHeader(authorizationHeader);
+        return Mono.defer(() -> {
+            AccessToken accessToken = AccessToken.fromAuthorizationHeader(authorizationHeader);
 
-        return authenticationCache.get(accessToken)
-            .switchIfEmpty(Mono.defer(() -> loadAndCache(accessToken)))
-            .map(AuthenticatedUser::from);
+            return authenticationCache.get(accessToken)
+                .switchIfEmpty(Mono.defer(() -> loadAndCache(accessToken)))
+                .map(AuthenticatedUser::from);
+        });
     }
 
     private Mono<AuthenticationValidationResult> loadAndCache(AccessToken accessToken) {

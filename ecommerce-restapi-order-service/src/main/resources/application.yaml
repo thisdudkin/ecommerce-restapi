@@ -1,25 +1,40 @@
 spring:
+  application:
+    name:                 order-service
   datasource:
-    url: ${ORDERS_DB:jdbc:postgresql://localhost:5432/orders_db}
-    username: ${ORDERS_DB_USERNAME:order_service}
-    password: ${ORDERS_DB_PASSWORD:order_service_password}
-
+    url:                  ${ORDERS_DB:jdbc:postgresql://localhost:5432/orders_db}
+    username:             ${ORDERS_DB_USERNAME:order_service}
+    password:             ${ORDERS_DB_PASSWORD:order_service_password}
   jpa:
-    show-sql: false
-    open-in-view: false
+    show-sql:             false
+    open-in-view:         false
     properties:
       hibernate:
-        format_sql: false
-        highlight_sql: false
+        format_sql:       false
+        highlight_sql:    false
         use_sql_comments: false
-
-  liquibase:
-    enabled: true
-
+  kafka:
+    bootstrap-servers:                  ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      acks:                             all
+      key-serializer:                   org.apache.kafka.common.serialization.StringSerializer
+      value-serializer:                 org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      properties:
+        spring.json.add.type.headers:   false
+    consumer:
+      auto-offset-reset:                earliest
+      group-id:                         order-service-payments
+      key-deserializer:                 org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer:               org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        spring.json.use.type.headers:   false
+        spring.json.trusted.packages:   org.example.ecommerce.orders.kafka
+        spring.json.value.default.type: org.example.ecommerce.orders.kafka.PaymentRecordedEvent
+    listener:
+      missing-topics-fatal:             false
   output:
     ansi:
       enabled: always
-
   cloud:
     openfeign:
       circuitbreaker:
@@ -29,12 +44,12 @@ resilience4j:
   circuitbreaker:
     instances:
       user-service:
-        sliding-window-type: count_based
-        sliding-window-size: 10
-        minimum-number-of-calls: 5
-        failure-rate-threshold: 50
-        wait-duration-in-open-state: 30s
-        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-type:                                 count_based
+        sliding-window-size:                                 10
+        minimum-number-of-calls:                             5
+        failure-rate-threshold:                              50
+        wait-duration-in-open-state:                         30s
+        permitted-number-of-calls-in-half-open-state:        3
         automatic-transition-from-open-to-half-open-enabled: true
         record-exceptions:
           - feign.RetryableException
@@ -45,21 +60,51 @@ resilience4j:
           - org.example.ecommerce.orders.exception.custom.feign.UserNotFoundException
 
 pagination:
-  cursor-secret: ${CURSOR_SECRET}
+  cursor-secret:    ${CURSOR_SECRET}
 
 clients:
   user-service:
-    base-url: ${USER_SERVICE_BASE_URL:http://localhost:8081}
-    connect-timeout: 2s
-    read-timeout: 3s
+    base-url:       ${USER_SERVICE_BASE_URL:http://localhost:8081}
+
+orders:
+  payment-requests:
+    topic-name:     ecommerce.payments.requested.v1
+  payment-events:
+    topic-name:     ecommerce.payments.recorded.v1
 
 decorator:
   datasource:
     datasource-proxy:
-      multiline: true
-      format-sql: true
+      logging:          slf4j
+      query:
+        enable-logging: false
+      slow-query:
+        enable-logging: true
+      json-format:      false
+      count-query:      true
+      format-sql:       true
+      multiline:        true
 
 logging:
   level:
-    org.hibernate.orm.connections.pooling: warn
+    org.hibernate.SQL:           off
+    org.hibernate.orm.jdbc.bind: off
     net.ttddyy.dsproxy.listener: debug
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url:                ${ORDERS_DB:jdbc:postgresql://postgres:5432/orders_db}
+    username:           ${ORDERS_DB_USERNAME:order_service}
+    password:           ${ORDERS_DB_PASSWORD:order_service_password}
+  kafka:
+    bootstrap-servers:  ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
+
+clients:
+  user-service:
+    base-url:           ${USER_SERVICE_BASE_URL:http://user-service:8081}
+  payment-service:
+    base-url:           ${PAYMENT_SERVICE_BASE_URL:http://payment-service:8084}

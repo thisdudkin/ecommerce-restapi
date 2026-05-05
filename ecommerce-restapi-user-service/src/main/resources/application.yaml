@@ -1,26 +1,24 @@
 spring:
   datasource:
-    url: ${USERS_DB:jdbc:postgresql://localhost:5432/users_db}
-    username: ${USERS_DB_USERNAME:user_service}
-    password: ${USERS_DB_PASSWORD}
+    url:                  ${USERS_DB:jdbc:postgresql://localhost:5432/users_db}
+    username:             ${USERS_DB_USERNAME:user_service}
+    password:             ${USERS_DB_PASSWORD:user_service_password}
   jpa:
-    show-sql: false
-    open-in-view: false
+    show-sql:             false
+    open-in-view:         false
     properties:
       hibernate:
-        format_sql: false
-        highlight_sql: false
+        format_sql:       false
+        highlight_sql:    false
         use_sql_comments: false
-  liquibase:
-    enabled: true
   data:
     redis:
-      host: localhost
-      port: 6379
+      host:               ${REDIS_HOST:localhost}
+      port:               ${REDIS_PORT:6379}
   cache:
-    type: redis
+    type:                 redis
     redis:
-      time-to-live: 10m
+      time-to-live:       10m
   output:
     ansi:
       enabled: always
@@ -28,12 +26,19 @@ spring:
 decorator:
   datasource:
     datasource-proxy:
-      multiline: true
-      format-sql: true
+      logging:          slf4j
+      query:
+        enable-logging: false
+      slow-query:
+        enable-logging: true
+      json-format:      false
+      count-query:      true
+      format-sql:       true
+      multiline:        true
 
 logging:
   level:
-    org.hibernate.SQL: off
+    org.hibernate.SQL:           off
     org.hibernate.orm.jdbc.bind: off
     net.ttddyy.dsproxy.listener: debug
 
@@ -43,10 +48,10 @@ spring:
     activate:
       on-profile: docker
   datasource:
-    url: ${USERS_DB:jdbc:postgresql://postgres:5432/users_db}
-    username: ${USERS_DB_USERNAME:user_service}
-    password: ${USERS_DB_PASSWORD}
+    url:        ${USERS_DB:jdbc:postgresql://postgres:5432/users_db}
+    username:   ${USERS_DB_USERNAME:user_service}
+    password:   ${USERS_DB_PASSWORD:user_service_password}
   data:
     redis:
-      host: redis
-      port: 6379
+      host:     ${REDIS_HOST:redis}
+      port:     ${REDIS_PORT:6379}

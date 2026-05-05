@@ -7,7 +7,9 @@ import org.example.ecommerce.orders.dto.request.OrderScrollRequest;
 import org.example.ecommerce.orders.dto.request.OrderStatusUpdateRequest;
 import org.example.ecommerce.orders.dto.response.OrderPageResponse;
 import org.example.ecommerce.orders.dto.response.OrderResponse;
+import org.example.ecommerce.orders.dto.response.PaymentResponse;
 import org.example.ecommerce.orders.service.OrderOrchestrator;
+import org.example.ecommerce.orders.service.OrderPaymentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -29,9 +31,11 @@ import static org.example.ecommerce.orders.security.TokenConstants.USER_CLAIM_EX
 public class OrderController {
 
     private final OrderOrchestrator orchestrator;
+    private final OrderPaymentService paymentService;
 
-    public OrderController(OrderOrchestrator orchestrator) {
+    public OrderController(OrderOrchestrator orchestrator, OrderPaymentService paymentService) {
         this.orchestrator = orchestrator;
+        this.paymentService = paymentService;
     }
 
     @PostMapping
@@ -89,6 +93,14 @@ public class OrderController {
                                                         @PathVariable Long orderId,
                                                         @Valid @RequestBody OrderChangeQuantityRequest request) {
         return ResponseEntity.ok(orchestrator.changeQuantity(userId, orderId, request));
+    }
+
+    @PostMapping("/{orderId}/payments")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<PaymentResponse> pay(@AuthenticationPrincipal(expression = USER_CLAIM_EXPRESSION) Long userId,
+                                               @PathVariable Long orderId) {
+        paymentService.pay(userId, orderId);
+        return ResponseEntity.accepted().build();
     }
 
     @PatchMapping("/{orderId}/status")

@@ -9,12 +9,26 @@ public class StaticPublicEndpointPolicy implements PublicEndpointPolicy {
         "/api/v1/auth/login",
         "/api/v1/auth/refresh",
         "/api/v1/auth/logout",
-        "/actuator/health"
+        "/actuator/health",
+        "/actuator/health/**",
+        "/swagger",
+        "/swagger/**",
+        "/swagger-ui/**",
+        "/v3/api-docs/swagger-config"
     );
 
     @Override
     public boolean isPublic(String path) {
-        return PUBLIC_PATHS.contains(path) || path.startsWith("/actuator/health/");
+        return path.equals("/api/v1/auth/credentials")
+            || path.equals("/api/v1/auth/login")
+            || path.equals("/api/v1/auth/refresh")
+            || path.equals("/api/v1/auth/logout")
+            || path.equals("/actuator/health")
+            || path.startsWith("/actuator/health/")
+            || path.equals("/swagger")
+            || path.startsWith("/swagger/")
+            || path.startsWith("/swagger-ui/")
+            || path.equals("/v3/api-docs/swagger-config");
     }
 
     @Override

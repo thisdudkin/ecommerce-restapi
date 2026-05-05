@@ -12,6 +12,7 @@ import org.example.ecommerce.orders.dto.response.ItemResponse;
 import org.example.ecommerce.orders.dto.response.OrderItemResponse;
 import org.example.ecommerce.orders.dto.response.OrderPageResponse;
 import org.example.ecommerce.orders.dto.response.OrderResponse;
+import org.example.ecommerce.orders.dto.response.PaymentCardResponse;
 import org.example.ecommerce.orders.dto.response.UserResponse;
 import org.example.ecommerce.orders.entity.Item;
 import org.example.ecommerce.orders.entity.Item_;
@@ -66,6 +67,18 @@ public final class TestDataGenerator {
         return userResponse(id());
     }
 
+    public static PaymentCardResponse paymentCardResponse() {
+        return new PaymentCardResponse(
+            id(),
+            RSU.nextAlphabetic(6),
+            RSU.nextAlphabetic(6),
+            birthdate().plusYears(50),
+            true,
+            datetime(),
+            datetime()
+        );
+    }
+
     public static UserResponse userResponse(Long userId) {
         return new UserResponse(
             userId,
@@ -74,6 +87,7 @@ public final class TestDataGenerator {
             birthdate(),
             RSU.nextAlphabetic(10).toLowerCase() + "@test.com",
             true,
+            List.of(paymentCardResponse()),
             datetime(),
             datetime()
         );

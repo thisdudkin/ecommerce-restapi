@@ -11,6 +11,7 @@ import org.example.ecommerce.orders.entity.Item;
 import org.example.ecommerce.orders.entity.Order;
 import org.example.ecommerce.orders.exception.handler.RestExceptionHandler;
 import org.example.ecommerce.orders.service.OrderOrchestrator;
+import org.example.ecommerce.orders.service.OrderPaymentService;
 import org.example.ecommerce.orders.support.MethodSecurityTestConfig;
 import org.example.ecommerce.orders.support.TestPrincipal;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -53,6 +55,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@ActiveProfiles("test")
 @WebMvcTest(OrderController.class)
 @Import(MethodSecurityTestConfig.class)
 class OrderControllerTests {
@@ -65,6 +68,9 @@ class OrderControllerTests {
 
     @MockitoBean
     private OrderOrchestrator orderOrchestrator;
+
+    @MockitoBean
+    private OrderPaymentService paymentService;
 
     @SpringBootApplication
     @Import(RestExceptionHandler.class)

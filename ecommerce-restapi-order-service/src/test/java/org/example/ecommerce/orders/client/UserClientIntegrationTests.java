@@ -1,10 +1,11 @@
 package org.example.ecommerce.orders.client;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
-import org.example.ecommerce.orders.config.UserClientFeignConfig;
+import org.example.ecommerce.orders.config.OpenFeignAuthorizationHeadersConfiguration;
 import org.example.ecommerce.orders.dto.response.UserResponse;
 import org.example.ecommerce.orders.exception.custom.feign.UserNotFoundException;
 import org.example.ecommerce.orders.exception.custom.feign.UserServiceUnavailableException;
+import org.example.ecommerce.orders.exception.handler.UserClientFallbackFactory;
 import org.example.ecommerce.orders.security.GatewayHeaderNames;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -39,9 +40,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
     classes = UserClientIntegrationTests.TestApplication.class,
     webEnvironment = SpringBootTest.WebEnvironment.NONE,
     properties = {
-        "spring.cloud.openfeign.circuitbreaker.enabled=true",
-        "clients.user-service.connect-timeout=2s",
-        "clients.user-service.read-timeout=3s"
+        "spring.cloud.openfeign.circuitbreaker.enabled=true"
     }
 )
 @EnableAutoConfiguration(exclude = {
@@ -61,7 +60,7 @@ class UserClientIntegrationTests {
     @EnableAutoConfiguration
     @EnableFeignClients(clients = UserClient.class)
     @Import({
-        UserClientFeignConfig.class,
+        OpenFeignAuthorizationHeadersConfiguration.class,
         UserClientFallbackFactory.class
     })
     static class TestApplication {

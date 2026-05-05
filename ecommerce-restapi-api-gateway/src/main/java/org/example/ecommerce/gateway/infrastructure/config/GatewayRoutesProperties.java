@@ -6,5 +6,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record GatewayRoutesProperties(
     String userServiceUri,
     String authServiceUri,
-    String orderServiceUri
+    String orderServiceUri,
+    String paymentServiceUri
 ) { }

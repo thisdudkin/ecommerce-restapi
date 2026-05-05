@@ -19,14 +19,15 @@ class GatewayRouteDefinitionServiceTests {
         GatewayRoutesProperties properties = new GatewayRoutesProperties(
             "http://user-service:8081",
             "http://auth-service:8082",
-            "http://order-service:8083"
+            "http://order-service:8083",
+            "http://payment-service:8084"
         );
 
         GatewayRouteDefinitionService service = new GatewayRouteDefinitionService(properties);
 
         List<RouteSpec> routes = service.routeSpecs();
 
-        assertEquals(4, routes.size());
+        assertEquals(5, routes.size());
 
         RouteSpec authRoute = findById(routes, "auth-service");
         assertEquals("http://auth-service:8082", authRoute.uri());
